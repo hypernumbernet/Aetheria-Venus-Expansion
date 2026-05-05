@@ -99,12 +99,58 @@ The technology tree is structured around 6 tiers with a focus on scientific real
 **Key Progression Mechanic**: Extending the upper H₂ layer increases unit mass capacity but raises wind load and H₂ leakage risks. AI compute accelerates research and building but demands power management.
 
 ## 6. Challenges & Balance
-- Acid corrosion (maintenance required)
-- Superrotation wind loads and shear (especially on tall H₂ structures)
-- Heat management (fins + heat pipes)
-- Buoyancy and weight limits (core tension when expanding)
-- Power management (especially with AI)
-- Decreasing Earth support over time
+
+The game features multiple interconnected challenge systems that create ongoing tension and strategic depth. Each challenge is grounded in Venus's scientific realities and designed to interact with core mechanics like unit expansion, AI usage, and resource management.
+
+### 6.1 Acid Corrosion (Global Challenge)
+- **Scientific Basis**: Venus clouds contain concentrated sulfuric acid aerosols that are highly corrosive to most materials.
+- **Game Impact**: All structures (especially connections and lower layers) gradually degrade over time. Regular maintenance or acid-resistant coatings (using sulfur composites) are required.
+- **Strategic Tension**: Players must balance resource allocation between expansion and maintenance. Neglect leads to connection failures or unit isolation.
+- **Interaction**: Affects long-term continent stability and encourages investment in sulfur-based materials.
+
+### 6.2 Wind Loads and Shear (Especially Upper Layer)
+- **Scientific Basis**: Strong, consistent superrotation winds (~100 m/s at cloud level) create significant dynamic pressure. Height differences cause wind shear.
+- **Game Impact**: Extending the upper H₂ layer increases wind exposure and connection stress. Excessive extension without reinforcement triggers "Wind Shear Events" that can damage connections or cause temporary buoyancy loss.
+- **Strategic Tension**: Players must decide how far to push H₂ layer extension for mass capacity versus maintaining structural integrity. Reinforcement research becomes critical for large-scale growth.
+- **Interaction**: Directly tied to the core progression mechanic of upper H₂ layer extension.
+
+### 6.3 Heat Management (Surface Explorer Only)
+- **Scientific Basis**: Venus surface temperature reaches 462°C, creating extreme thermal stress.
+- **Game Impact**: **This challenge applies exclusively to the submarine-type surface exploration vehicle.** The floating continent itself operates at Earth-like temperatures (~0-50°C) and does not suffer from surface-level heat issues.
+  - The exploration vehicle accumulates heat during surface operations.
+  - Players must manage active cooling via dual-use fins (heat dissipation + propulsion) and potassium-based heat pipes.
+  - Prolonged surface stays without proper cooling lead to equipment failure or vehicle loss.
+- **Strategic Tension**: Creates risk-reward decisions during surface resource runs. Players must balance exploration time against vehicle safety and repair costs.
+- **Interaction**: Encourages technological investment in heat management systems and limits aggressive surface exploitation early on.
+
+### 6.4 Buoyancy and Weight Management
+- **Scientific Basis**: Buoyancy depends on displaced atmospheric volume versus vehicle mass. Extending structures increases both lift potential and wind exposure.
+- **Game Impact**: Adding units or extending the upper H₂ layer increases total mass. Insufficient buoyancy causes gradual descent or emergency measures (H₂ venting or ballast discard).
+- **Strategic Tension**: Core gameplay tension when expanding the continent. Players must proactively extend H₂ structures or add auxiliary buoyancy while managing wind risks.
+- **Interaction**: Directly linked to unit expansion and upper layer mechanics. Creates meaningful trade-offs between growth speed and stability.
+
+### 6.5 Power Management (Especially with AI)
+- **Scientific Basis**: Solar power is available but intermittent due to clouds and the shortened day-night cycle from superrotation.
+- **Game Impact**: AI Computation Resources consume large amounts of power. Over-investment in AI can starve other systems (ISRU, cooling, life support).
+- **Strategic Tension**: Players must balance AI investment (faster research/building) against power generation capacity. Fuel cells (from H₂/CH₄) become critical backups.
+- **Interaction**: Creates deep resource management gameplay and makes power infrastructure a constant priority.
+
+### 6.6 Resource Bottlenecks
+- **Scientific Basis**: Venus has limited water and specific mineral distributions.
+- **Game Impact**: Water and Phosphorus become mid-to-late game bottlenecks for agriculture and nuclear power. Over-reliance on certain resources creates vulnerabilities.
+- **Strategic Tension**: Forces players to diversify resource acquisition (atmospheric vs surface) and manage competing demands (e.g., water for farming vs nuclear).
+- **Interaction**: Encourages exploration progression and creates meaningful late-game decisions.
+
+### 6.7 Exploration Risks
+- **Scientific Basis**: Surface conditions are extremely hostile (heat, pressure, corrosion).
+- **Game Impact**: The submarine-type exploration vehicle can be lost or damaged during extended surface operations. Recovery missions may be required.
+- **Strategic Tension**: High-risk, high-reward resource gathering. Players must weigh potential gains against vehicle replacement costs and lost progress.
+- **Interaction**: Ties directly into the exploration loop and encourages technological upgrades to the vehicle.
+
+### 6.8 Decreasing Earth Support
+- **Game Impact**: Periodic support from Earth gradually diminishes over the campaign, eventually stopping entirely.
+- **Strategic Tension**: Early game is more forgiving; late game forces complete self-reliance. Creates a natural difficulty curve and narrative progression.
+- **Interaction**: Reinforces the importance of robust ISRU and automation systems.
 
 ## 7. Progression & Meta
 - Research tree with explicit element requirements (S, C, H, N, P, K, Fe, U, H₂O)
