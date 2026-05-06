@@ -4,10 +4,10 @@
 
 **Title**: Aetheria: Venus Expansion
 **Genre**: Colony Simulation / Base Builder / Resource Management / Exploration
-**Core Concept**: Players build and expand a modular floating continent on Venus at ~50km altitude using ISRU from atmospheric (H2SO4, CO2, N2) and surface resources. The goal is to achieve self-sufficiency by growing hexagonal prism units into a large "floating continent."
+**Core Concept**: Players build and expand a modular floating continent on Venus at ~50km altitude using ISRU from atmospheric (H₂SO₄, CO₂, N₂) and surface resources. The goal is to achieve self-sufficiency by growing hexagonal prism units into a large "floating continent."
 
 **Unique Features**:
-- Physics-based buoyancy and weight management (extendable upper H2 layer)
+- Physics-based buoyancy and weight management (extendable upper H₂ layer)
 - Modular hexagonal unit expansion with vertical zoning
 - Dual-purpose exploration vehicle (submarine-type for dense atmosphere)
 - AI Computation Resources for research/automation (power-intensive)
@@ -17,44 +17,72 @@
 
 ## 2. World Setting
 
-- Altitude: 50km (Earth-like pressure ~1atm, temperature 0-50°C)
-- Atmosphere: 96.5% CO2, 3.5% N2, H2SO4 clouds with water
-- Surface: 462°C, 92 bar, dense CO2 (~65 kg/m³)
-- Key phenomenon: Superrotation (~4 Earth day cycle at cloud tops)
+### Scientific Details of the 50km Altitude Environment
+At ~50km altitude on Venus, conditions approximate Earth's surface: pressure 0.5-1 atm, temperature 0-50°C, density ~0.5-1 kg/m³. Key similarities include habitable temperature and pressure ranges; differences center on the CO₂-dominated atmosphere and altitude-dependent strong winds from superrotation. This altitude band is optimal for floating structure operations.
+
+### Atmospheric Composition and Cloud Structure
+The atmosphere comprises 96.5% CO₂ and 3.5% N₂ as primary components, with trace SO₂ and H₂O. H₂SO₄ (sulfuric acid) clouds spanning 48-70km were shown by 2025 reanalysis to hold higher water content than prior models, intensifying acidity. Cloud layers divide into upper (thin haze in upper troposphere), middle (dense main deck), and lower (precipitation-bearing), driving corrosive fallout and visibility constraints.
+
+### Superrotation Mechanism
+Venus's atmosphere rotates at varying angular velocities by altitude, producing superrotation (~4 Earth-day cycle, winds >100 m/s) at cloud tops. Akatsuki observations identified thermal tidal waves and atmospheric gravity waves as primary angular momentum transporters, featuring day-night asymmetric meridional circulation (dayside upwelling, nightside downwelling) and vertical wind shear (gentle at lower altitudes, sharp at upper). This drives core wind load management challenges.
+
+### Surface Environment Details
+Surface conditions (462°C, 92 atm, 65 kg/m³ density) create a near-supercritical CO₂ fluid state. The terrain is dominated by basaltic rocks with iron sulfate (e.g., FeSO₄) deposits, necessitating extreme heat, pressure, and corrosion resistance for any surface probes.
+
+### Scientific Rationale for Floating Bases
+Earth-like temperature and pressure at 50km enable buoyancy-supported lightweight base construction and offer an accessible altitude for surface-reaching probes (parachute descent followed by dense-atmosphere "submarine" transit). Self-sufficiency via ISRU remains feasible despite declining Earth support.
+
+### Historical Exploration Context
+JAXA's Akatsuki orbiter, since its 2015 Venus orbit insertion, has mapped superrotation wave dynamics and atmospheric processes in detail, providing the scientific foundation and realism for this game's world.
 
 Players start with small floating units and expand using local resources while managing acid corrosion, wind loads, heat, and buoyancy.
 
 ## 3. Core Gameplay Loop
 
-1. **Explore**: Send atmospheric drones and submarine-type surface vehicles to gather resources.
-2. **Recover & Process**: Use ISRU to convert H2SO4 into H2/S/water, CO2 into fuels/O2, surface minerals into materials.
-3. **Build & Expand**: Construct and connect hexagonal prism units. Extend upper H2 buoyancy layer to increase mass capacity.
-4. **Manage**: Balance power (solar + fuel cells), AI compute, buoyancy, corrosion, and wind stress.
-5. **Grow**: Expand the floating continent, unlock technologies, and achieve self-sufficiency as Earth support decreases.
+The core loop is structured as interconnected short-, medium-, and long-term cycles to deliver sustained engagement and deep satisfaction typical of high-quality simulation games. Players experience immediate tangible feedback from actions, emergent complexity from system interactions, creative expression through base design, and meaningful progression toward ambitious goals. Key satisfaction drivers include visual spectacle of growth, "aha" moments from clever optimizations, narrative emergence from AI crew logs and event chains, and replayability via multiple viable strategies and dynamic challenges.
+
+**Inner Tactical Loop (Real-time Operations - Minutes):**
+
+1. **Explore**: Dispatch and pilot atmospheric drones for cloud sampling and high-altitude scouting, alongside the versatile submarine-type surface vehicle (parachute descent + dense-atmosphere swimming with dual-purpose fins for propulsion and thermal management). Exploration yields not only raw resources but scientific data logs, rare mineral hotspots, and dynamic events (e.g., acid precipitation fronts or superrotation wind shears) that players must navigate in real-time for bonus yields or risk mitigation.
+
+2. **Recover & Process**: Activate ISRU refineries to break down collected H₂SO₄ into hydrogen, sulfur, and trace water; crack CO₂ for oxygen and carbon feedstocks; and smelt surface ores. Players optimize processing queues, temperature/pressure parameters, and by-product utilization to minimize waste and maximize efficiency. Logistics networks (conveyor-like pipes and automated drones) connect collection points to processing hubs, creating satisfying flow visualizations akin to factorio-style automation.
+
+3. **Build & Expand**: Design modular hexagonal prism layouts on a physics-simulated grid. Construct new units, link them with flexible connectors, and extend the upper hydrogen buoyancy envelope to support added mass. Player creativity shines in vertical zoning (residential gardens in mid-layer, industrial fins below), aesthetic customization using material palettes, and spatial planning that affects traffic flow and structural integrity.
+
+4. **Manage & Balance**: Monitor a central dashboard displaying real-time metrics for power generation/consumption, AI compute allocation, net buoyancy, corrosion rates, and wind-load stresses. Respond to alerts by rerouting power, deploying maintenance bots, or adjusting fin angles. Subtle imbalances create tension that resolves satisfyingly when optimized (e.g., using excess sulfur for protective coatings that unlock new build options).
+
+5. **Adapt to Dynamics**: React to environmental events (gusts from superrotation, equipment degradation, population needs spikes) by improvising solutions that leverage prior tech investments. Successful adaptations generate crew morale bonuses and unlock flavor text or minor narrative arcs.
+
+**Strategic Mid-Loop (Planning & Progression - Hours):**
+
+- Allocate AI compute between urgent automation tasks, research projects, and predictive simulations that reveal future bottlenecks.
+- Expand population through life-support scaling and agriculture, managing citizen happiness via amenities, recreation modules, and psychological factors (e.g., view of the clouds).
+- Invest in infrastructure upgrades (transport rails, redundant power grids) that multiply the efficiency of the inner loop.
+
+**Outer Campaign Loop (Long-term Vision - Multiple Sessions):**
+
+- Scale the floating continent from a handful of modules to a sprawling megastructure, with visual milestones such as "continent tier" thresholds triggering celebratory animations, new music layers, and Earth-news bulletins.
+- Progress through the technology tree, where each breakthrough delivers satisfying cutscenes or holographic projections demonstrating the new capability in context.
+- Navigate the tapering Earth supply line, culminating in a self-sufficiency achievement that provides closure, high-score calculation based on efficiency, sustainability, and exploration completeness, and options for post-game sandbox or challenge scenarios.
+
+This layered structure ensures players feel constant agency and reward: short-term actions produce visible progress and resource influx, medium-term decisions create powerful synergies and automation, and long-term play yields a personalized, living world that feels earned through skillful play and creative choices. Emergent stories arise naturally—e.g., a well-placed fin array surviving a major storm and enabling a rapid expansion surge—fostering emotional investment.
 
 ## 4. Key Systems
 
 ### Modular Units
-- Standard unit: Hexagonal prism (40m side, 40m height)
-- Vertical layers: Upper (extendable H2 buoyancy), Middle (residential), Lower (industrial/mobility with dual-use fins)
-- Connections: Flexible, redundant, acid-resistant mechanisms
+Each 40m hexagonal prism unit serves as a self-contained voxel in the growing continent. Vertical zoning is fully player-directed: the extendable upper H₂ layer provides buoyancy that scales with envelope volume and gas pressure (visual gas cells inflate satisfyingly); the middle layer hosts configurable residential, agricultural, or research modules with windowed views of Venusian clouds for crew morale bonuses; the lower industrial layer integrates dual-use aerodynamic fins that double as heat radiators and propulsion surfaces. Connections use articulated, corrosion-proof joints that transmit power, data, and resources while flexing under wind loads—players witness stress visualizations and can reinforce proactively. Satisfaction arises from creative layouts (organic vs grid patterns), real-time physics feedback during construction (wobble warnings, buoyancy recalculations), and milestone "continent growth" animations when modules link successfully. Units can be upgraded in-place with new skins and functions unlocked via materials tech, encouraging iterative redesign.
 
 ### Resources & ISRU
-- Atmospheric: H2 from H2SO4, Sulfur, limited Water
-- Surface: Rocks, Iron sulfates, Phosphorus, Uranium (later)
-- Key products: Sulfur concrete (limited use for ground facilities), Carbon fiber composites (post-plastic), Synthetic fuels
+Resource chains are deep, branching, and visually rich. Atmospheric scoops harvest H₂SO₄ mists that feed multi-stage refineries: electrolysis yields H₂ (for buoyancy and fuel cells), sulfur (coatings, composites), and reclaimed water; CO₂ Sabatier and Bosch reactors produce CH₄, O₂, carbon black, and eventually advanced polymers. Surface expeditions return basaltic rock and iron sulfates processed into sulfur concrete, phosphorus fertilizers, and trace metals. By-product synergies create "aha" moments—excess sulfur protects new builds, waste heat warms greenhouses, or CO₂-derived plastics enable lighter modules. Players optimize refinery recipes, storage buffers, and drone logistics routes on a live flow diagram, with color-coded efficiency scores and waste-heat recovery stats. Dynamic events (acid rain spikes, wind-driven dilution) force adaptive rerouting, rewarding foresight and creating emergent storytelling through automated log entries.
 
 ### AI Computation Resources
-- Consumes significant power
-- Boosts research speed and robot/automation efficiency
-- Core progression driver in mid-to-late game
+AI nodes are power-hungry crystalline server clusters whose pulsing blue glow intensifies with load. Players allocate compute across three competing pools via a radial UI: research (accelerating tech unlocks with holographic progress trees), automation (improving bot speed, refinery throughput, and predictive maintenance), and simulation (running "what-if" forecasts for buoyancy under upcoming storms or population growth curves). Higher AI investment yields satisfying exponential gains but risks brownouts if power fluctuates. Late-game quantum or optical upgrades unlock creative applications such as procedural interior design suggestions. Visual feedback includes node "awakening" sequences and crew celebration voice lines when breakthroughs occur, turning abstract compute into tangible progress and narrative flavor.
 
 ### Infrastructure
-- Transport networks (roads/rails) between units (SimCity-inspired)
-- Power grid management
+Transport and utility networks emulate SimCity depth with Venusian twists. Hexagonal grid roads/rails support autonomous cargo pods whose routes players optimize for minimal travel time and congestion (heat-map overlays highlight bottlenecks). Power flows through flexible superconducting spines that players can reroute during outages; solar arrays on upper surfaces compete with fuel-cell banks for surface area, creating meaningful placement dilemmas. Redundant loops and backup capacitors prevent cascading failures during superrotation gusts. Players derive satisfaction from watching smoothly animated logistics flows, achieving "perfect efficiency" badges on sub-networks, and unlocking aesthetic upgrades (glowing light strips, animated maintenance bots) that make the continent feel alive and personalized.
 
 ### Exploration
-- Submarine-type vehicle: Parachute descent, dense-atmosphere "swimming" movement with dual-use fins (propulsion + heat dissipation), resource collection, balloon/variable buoyancy ascent
+The submarine-type vehicle is a core source of wonder and risk. Players manually or semi-autonomously pilot it: parachute descent through turbulent cloud layers (with real-time turbulence audio), then "swimming" propulsion via fin vectoring in the dense lower atmosphere while managing heat buildup on specialized radiator fins. Resource collection involves scanning, drilling, and sample return with limited cargo; ascent uses variable-buoyancy balloons that players time against wind shear. Discoveries include not only bulk materials but rare data caches, geological anomalies, and occasional dynamic events (surface lava flows, probe wreckage). Every successful mission returns with a generated expedition log that populates a discoverable codex, fostering emotional attachment. Vehicle upgrades (better fins, stronger balloons, AI co-pilot) transform early hair-raising manual flights into elegant, high-yield automated runs, delivering clear mastery progression and cinematic replay value.
 
 ## 5. Technology Tree (Detailed)
 
@@ -153,16 +181,43 @@ The game features multiple interconnected challenge systems that create ongoing 
 - **Interaction**: Reinforces the importance of robust ISRU and automation systems.
 
 ## 7. Progression & Meta
-- Research tree with explicit element requirements (S, C, H, N, P, K, Fe, U, H₂O)
-- Unit expansion and continent growth
-- AI allocation for automation vs manual control
-- Earth support difficulty slider (decreases over campaign)
+
+Progression in Aetheria: Venus Expansion is deliberately multi-dimensional, rewarding players who master the interplay of physics, chemistry, and automation rather than simple resource accumulation. Growth occurs along three tightly interwoven axes—technical, physical, and systemic—creating a satisfying arc from fragile outpost to thriving, self-sustaining floating nation. The meta layer adds long-term narrative tension through fading Earth support and meaningful playstyle choices that shape each player’s unique continent identity.
+
+### 7.1 Progression (Three Growth Axes)
+
+**1. Technical Growth (Research Progression)**  
+The technology tree is gated by acquisition and sophisticated use of key elements (S, C, H, N, P, K, Fe, U, H₂O). Early tiers focus on basic atmospheric cracking and life support; mid tiers unlock carbon-fiber composites, full N-P-K agriculture, and initial AI nodes; late tiers enable nuclear power, advanced composites, and near-total automation. Each breakthrough delivers clear visual and auditory payoffs: new holographic schematics, upgraded module appearances, and crew voice lines celebrating milestones. AI compute can be heavily invested to accelerate research, but this creates a constant power trade-off that forces players to optimize their energy economy. The result is a deep sense of mastery as players discover synergistic element chains (e.g., sulfur coatings enabling safer H₂ extension, which in turn supports more AI nodes).
+
+**2. Physical Growth (Continent Expansion)**  
+Physical scale increases through the addition and interconnection of hexagonal prism units and the controlled extension of the upper H₂ buoyancy envelope. Each new module or envelope stage raises mass capacity while simultaneously increasing wind exposure and connection stress—maintaining the core tension of buoyancy versus structural integrity. Players experience visceral satisfaction from watching the continent visibly grow: upper towers inflate with shimmering hydrogen cells, new residential gardens bloom under the orange sky, and lower industrial fins deploy with satisfying mechanical animations. Over-expansion without proper reinforcement triggers dramatic (but recoverable) Wind Shear Events, teaching players to balance ambition with engineering discipline. Late-game megastructures feel genuinely earned and visually spectacular.
+
+**3. Systemic Growth (Automation & Efficiency)**  
+Early gameplay centers on hands-on management of drones, refineries, and power routing. As players invest in AI nodes and infrastructure, routine tasks migrate to autonomous systems, freeing cognitive bandwidth for higher-level planning and creative design. Transport networks evolve from simple drone paths into optimized rail-and-pod grids; power grids gain redundant spines and predictive load balancing. The satisfaction curve is steep: players witness their once-chaotic resource flows become elegant, self-regulating circulatory systems. However, larger continents introduce more variables (corrosion spread, population needs, cumulative wind loads), ensuring that systemic mastery remains an ongoing, rewarding challenge rather than a solved problem.
+
+### 7.2 Meta (Long-term Framework & Player Expression)
+
+**Decreasing Earth Support as Difficulty Curve**  
+The campaign begins with regular supply drops that ease early survival. As the story progresses, these deliveries dwindle and eventually cease entirely, creating a natural and emotionally resonant difficulty ramp. Players feel genuine accomplishment when they reach “Independence Thresholds”—moments where the continent sustains itself without any external aid. This meta mechanic also fuels narrative: news bulletins from Earth grow increasingly distant, culminating in a poignant final transmission that marks the birth of a new, permanent human presence on Venus.
+
+**Playstyle Choice & Continent Identity**  
+Players can lean toward manual control (minimizing AI investment for fine-grained oversight and higher peak efficiency) or full automation (heavy AI allocation for scalable, low-intervention operation). Hybrid approaches are viable and often optimal. These choices manifest visibly: manual-heavy continents feature intricate, hand-optimized layouts and frequent player interventions; automation-heavy ones display sweeping, efficient mega-structures with glowing AI nodes and minimal human presence. Both paths are valid, generate distinct emergent stories, and support high replayability through different starting conditions or self-imposed challenges.
+
+**Ultimate Long-term Goal**  
+The overarching objective transcends mere survival. Players strive to establish a permanent, self-sufficient floating nation capable of supporting a thriving population and continuing scientific advancement long after Earth contact is lost. Completion is marked by a powerful closure sequence: a full-continent ceremony, a comprehensive “Legacy Score” evaluating efficiency, sustainability, exploration breadth, and aesthetic harmony, plus options to continue in endless sandbox mode or attempt harder challenge scenarios. This structure gives every playthrough a clear sense of purpose and lasting achievement.
 
 ## 8. Visual & Audio Direction
-- Beautiful contrast between orange Venus clouds and artificial hexagonal structures
-- Visual growth as upper H₂ towers extend
-- Tense environmental audio with achievement moments on expansion
 
----
+The audiovisual direction blends rigorous scientific realism with a subtle, dreamlike fantasy quality that makes the floating continent feel both plausible and wondrous. Venus itself remains a hostile, orange-hued world of dense clouds and dramatic superrotation, yet the player’s artificial structures possess a soft, almost ethereal glow that hints at humanity’s hopeful foothold in an alien sky. This contrast—harsh planetary reality versus the delicate, luminous human presence—forms the emotional core of the visual identity.
 
-*This document is generated based on iterative design discussions incorporating scientific accuracy of Venus (superrotation, atmospheric chemistry, ISRU feasibility, material science). Further details can be expanded.*
+### Visual Style
+Environments use high-fidelity rendering with accurate atmospheric scattering, cloud layering, and wind-driven particle effects, yet structures feature gentle painterly edge softening, warm rim lighting, and faint iridescent highlights on hydrogen cells and carbon-fiber surfaces. Hexagonal modules catch the perpetual twilight in rich oranges and deep teals, while interior spaces glow with soft bioluminescent accents and holographic interfaces. As the continent grows, upper H₂ towers extend with visible gas-cell inflation and shimmering refractive caustics. New modules deploy via elegant unfolding animations accompanied by drifting condensation trails. Exploration of the surface reveals heat-distorted horizons and occasional volcanic glows, all rendered with scientific fidelity but softened by a light fantasy haze that evokes wonder rather than pure desolation. Dynamic time-of-day cycles (shortened by superrotation) and weather events (acid mist, wind shear) further enrich the living world.
+
+### Audio Direction – Ambient & Meditative
+The default musical palette is contemplative and emotionally resonant: warm electric piano, soft brush drums, upright bass, and layered atmospheric pads interwoven with processed field recordings of Venusian wind and distant thunder. Pieces evolve slowly, mirroring the patient, long-term nature of colony building. Subtle jazz phrasing—gentle improvisational runs on piano or muted trumpet—occasionally surfaces during calm periods, lending a sophisticated, lived-in warmth without breaking immersion. Environmental audio is equally rich: low-frequency wind shear across the H₂ envelope, the soft hiss of refineries, the rhythmic clack of cargo pods on rails, and faint crew chatter that grows livelier as population increases. All elements mix dynamically; during storms the jazz elements recede in favor of tense, dissonant pads and howling wind layers.
+
+### Achievement & Milestone Audio-Visual Feedback
+Major accomplishments—new continent tier, successful self-sufficiency milestone, major tech breakthrough, or record-efficiency quarter—trigger deliberately exaggerated, celebratory sequences. The screen gently slows as triumphant orchestral brass and choir swell over the base jazz-ambient bed. A large, elegant Legacy Score display fades in at center screen with particle confetti (glowing hexagonal motes and soft aurora-like ribbons in Venusian oranges and cyans). Crew voice lines cheer in multiple languages, and the camera performs a smooth, cinematic orbit of the newly expanded continent section. These moments are intentionally over-the-top to deliver cathartic payoff after long periods of careful management, reinforcing emotional investment and a sense of genuine achievement.
+
+### UI and Feedback Polish
+All interface elements adopt a clean, holographic aesthetic with subtle scan-line and lens-flare touches that feel both futuristic and slightly magical. Resource flow diagrams pulse gently when efficiency improves. Damage or stress warnings appear as elegant amber glyphs rather than harsh red alerts. These small touches maintain readability while preserving the overall tone of hopeful, almost fantastical human ingenuity against the vast Venusian backdrop.
