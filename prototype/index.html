@@ -16,6 +16,7 @@
     <main class="main">
       <section class="map-panel">
         <canvas id="game-canvas" width="720" height="560"></canvas>
+        <div id="sink-warning" class="sink-warning" hidden></div>
         <div id="toast" class="toast" aria-live="polite"></div>
       </section>
 
@@ -38,8 +39,10 @@
             <div><dt>H₂SO₄</dt><dd id="res-h2so4">—</dd></div>
             <div><dt>H₂</dt><dd id="res-h2">—</dd></div>
             <div><dt>Sulfur</dt><dd id="res-sulfur">—</dd></div>
+            <div><dt>Iron</dt><dd id="res-iron">—</dd></div>
             <div><dt>Earth Credits</dt><dd id="res-credits">—</dd></div>
           </dl>
+          <button id="btn-inventory" class="action-btn inventory-open-btn">在庫・地球市場</button>
         </section>
 
         <section class="panel">
@@ -63,8 +66,31 @@
     </main>
 
     <footer class="footer">
-      <p>ISRU loop: harvest H₂SO₄ → electrolyze to H₂ → extend buoyancy envelope. Earth remains a trading partner.</p>
+      <p>ISRU loop: harvest H₂SO₄ → electrolyze to H₂ → extend buoyancy envelope. Buy materials from Earth before building.</p>
     </footer>
+  </div>
+
+  <dialog id="inventory-dialog" class="inventory-dialog">
+    <div class="dialog-header">
+      <h2>在庫・地球市場</h2>
+      <button id="btn-close-inventory" type="button" class="dialog-close" aria-label="閉じる">×</button>
+    </div>
+    <p class="dialog-intro">建設には在庫の材料が必要です。クレジットで地球から購入できます。</p>
+    <div id="inventory-list" class="inventory-list"></div>
+    <div class="inventory-locked-section">
+      <h3>今後の材料</h3>
+      <div id="inventory-locked"></div>
+    </div>
+  </dialog>
+
+  <div id="gameover-overlay" class="gameover-overlay" hidden>
+    <div class="gameover-card">
+      <h2>大陸が沈没しました</h2>
+      <p>浮力が持たず、浮遊大陸は金星の硫酸雲の下へ消えていきました。</p>
+      <p class="gameover-hope">まだ終わりではありません — 設計を見直して、もう一度挑戦しましょう。</p>
+      <p class="gameover-stats">生存ティック: <span id="gameover-tick">0</span></p>
+      <button id="btn-restart" type="button" class="action-btn">再起動</button>
+    </div>
   </div>
 
   <script type="module" src="js/main.js"></script>
