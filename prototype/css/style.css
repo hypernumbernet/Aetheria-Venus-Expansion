@@ -1,0 +1,247 @@
+:root {
+  --bg-deep: #0d1117;
+  --bg-panel: #161b22;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #f0883e;
+  --accent-dim: #9a5d28;
+  --cyan: #39d4d4;
+  --green: #3fb950;
+  --red: #f85149;
+  --amber: #d29922;
+  --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font);
+  background: radial-gradient(ellipse at 50% 0%, #2a1810 0%, var(--bg-deep) 55%);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.main {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.map-panel {
+  position: relative;
+  flex: 1 1 720px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+}
+
+.sidebar {
+  flex: 0 1 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.panel h2 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem 0.75rem;
+}
+
+.stats div {
+  display: contents;
+}
+
+.stats dt {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.stats dd {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats dd.positive { color: var(--green); }
+.stats dd.negative { color: var(--red); }
+.stats dd.warning { color: var(--amber); }
+
+.build-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.build-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  background: #21262d;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.build-btn:hover {
+  border-color: var(--accent);
+  background: #2d333b;
+}
+
+.build-btn.active {
+  border-color: var(--accent);
+  background: #3d2e1f;
+  box-shadow: 0 0 0 1px var(--accent-dim);
+}
+
+.build-btn .swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  line-height: 1.4;
+}
+
+.selected-info {
+  font-size: 0.82rem;
+  margin-bottom: 0.5rem;
+  min-height: 2.5em;
+  line-height: 1.4;
+}
+
+.action-btn {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 0.35rem;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  color: #1a1008;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.action-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.action-btn.secondary {
+  background: #21262d;
+  color: var(--cyan);
+  border: 1px solid var(--border);
+}
+
+.tick-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.footer {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.toast {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(120%);
+  background: rgba(22, 27, 34, 0.95);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: transform 0.3s, opacity 0.3s;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+@media (max-width: 800px) {
+  .sidebar {
+    flex: 1 1 100%;
+  }
+}
