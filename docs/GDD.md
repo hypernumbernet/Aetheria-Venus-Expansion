@@ -4,7 +4,8 @@
 
 **Title**: Aetheria: Venus Expansion
 **Genre**: Colony Simulation / Base Builder / Resource Management / Exploration
-**Core Concept**: Players build and expand a modular floating continent on Venus at ~50km altitude using ISRU from atmospheric (H₂SO₄, CO₂, N₂) and surface resources. The goal is to achieve self-sufficiency by growing hexagonal prism units into a large "floating continent."
+**Platform**: 2D browser game (HTML5 canvas, top-down or isometric hex map, 2D UI overlays)
+**Core Concept**: Players build and expand a modular floating continent on Venus at ~50km altitude using ISRU from atmospheric (H₂SO₄, CO₂, N₂) and surface resources. The goal is to grow hexagonal prism units into a thriving floating continent—optionally achieving full self-sufficiency as a proud engineering milestone while Earth remains a cooperative partner.
 
 **Unique Features**:
 - Physics-based buoyancy and weight management (extendable upper H₂ layer)
@@ -12,7 +13,7 @@
 - Dual-purpose exploration vehicle (submarine-type for dense atmosphere)
 - AI Computation Resources for research/automation (power-intensive)
 - SimCity-like transport infrastructure
-- Decreasing Earth support as difficulty progression
+- Ongoing Earth–Venus trade and joint research partnership (hopeful, never abandoned)
 - Scientific accuracy: Superrotation, cloud chemistry, surface conditions
 
 ## 2. World Setting
@@ -30,7 +31,7 @@ Venus's atmosphere rotates at varying angular velocities by altitude, producing 
 Surface conditions (462°C, 92 atm, 65 kg/m³ density) create a near-supercritical CO₂ fluid state. The terrain is dominated by basaltic rocks with iron sulfate (e.g., FeSO₄) deposits, necessitating extreme heat, pressure, and corrosion resistance for any surface probes.
 
 ### Scientific Rationale for Floating Bases
-Earth-like temperature and pressure at 50km enable buoyancy-supported lightweight base construction and offer an accessible altitude for surface-reaching probes (parachute descent followed by dense-atmosphere "submarine" transit). Self-sufficiency via ISRU remains feasible despite declining Earth support.
+Earth-like temperature and pressure at 50km enable buoyancy-supported lightweight base construction and offer an accessible altitude for surface-reaching probes (parachute descent followed by dense-atmosphere "submarine" transit). Self-sufficiency via ISRU is a proud optional goal; Earth remains a reliable trading and research partner throughout the campaign.
 
 ### Historical Exploration Context
 JAXA's Akatsuki orbiter, since its 2015 Venus orbit insertion, has mapped superrotation wave dynamics and atmospheric processes in detail, providing the scientific foundation and realism for this game's world.
@@ -61,9 +62,9 @@ The core loop is structured as interconnected short-, medium-, and long-term cyc
 
 **Outer Campaign Loop (Long-term Vision - Multiple Sessions):**
 
-- Scale the floating continent from a handful of modules to a sprawling megastructure, with visual milestones such as "continent tier" thresholds triggering celebratory animations, new music layers, and Earth-news bulletins.
-- Progress through the technology tree, where each breakthrough delivers satisfying cutscenes or holographic projections demonstrating the new capability in context.
-- Navigate the tapering Earth supply line, culminating in a self-sufficiency achievement that provides closure, high-score calculation based on efficiency, sustainability, and exploration completeness, and options for post-game sandbox or challenge scenarios.
+- Scale the floating continent from a handful of modules to a sprawling megastructure, with visual milestones such as "continent tier" thresholds triggering celebratory 2D animations, new music layers, and Earth–Venus news bulletins.
+- Progress through the technology tree, where each breakthrough delivers satisfying 2D schematic reveals and UI unlock animations demonstrating the new capability in context.
+- Pursue optional self-sufficiency milestones while maintaining Earth trade routes and joint research exchanges, culminating in high-score calculation based on efficiency, sustainability, and exploration completeness, plus options for post-game sandbox or challenge scenarios.
 
 This layered structure ensures players feel constant agency and reward: short-term actions produce visible progress and resource influx, medium-term decisions create powerful synergies and automation, and long-term play yields a personalized, living world that feels earned through skillful play and creative choices. Emergent stories arise naturally—e.g., a well-placed fin array surviving a major storm and enabling a rapid expansion surge—fostering emotional investment.
 
@@ -175,14 +176,15 @@ The game features multiple interconnected challenge systems that create ongoing 
 - **Strategic Tension**: High-risk, high-reward resource gathering. Players must weigh potential gains against vehicle replacement costs and lost progress.
 - **Interaction**: Ties directly into the exploration loop and encourages technological upgrades to the vehicle.
 
-### 6.8 Decreasing Earth Support
-- **Game Impact**: Periodic support from Earth gradually diminishes over the campaign, eventually stopping entirely.
-- **Strategic Tension**: Early game is more forgiving; late game forces complete self-reliance. Creates a natural difficulty curve and narrative progression.
-- **Interaction**: Reinforces the importance of robust ISRU and automation systems.
+### 6.8 Earth Partnership & Trade
+- **Narrative Basis**: Earth and the Venus floating colony maintain an ongoing cooperative relationship—supply exchanges, scientific data sharing, and cultural contact continue throughout the campaign.
+- **Game Impact**: Players can request periodic trade shipments (metals, specialty equipment, research data) in exchange for Venusian exports (sulfur composites, atmospheric samples, exploration logs). Trade volume scales with reputation earned through milestones, not through abandonment.
+- **Strategic Tension**: Relying heavily on imports is viable but costly in trade goods and logistics; pursuing self-sufficiency unlocks prestige bonuses and reduces trade dependency without severing Earth ties.
+- **Interaction**: Reinforces ISRU mastery as a proud optional path while keeping the tone hopeful and collaborative.
 
 ## 7. Progression & Meta
 
-Progression in Aetheria: Venus Expansion is deliberately multi-dimensional, rewarding players who master the interplay of physics, chemistry, and automation rather than simple resource accumulation. Growth occurs along three tightly interwoven axes—technical, physical, and systemic—creating a satisfying arc from fragile outpost to thriving, self-sustaining floating nation. The meta layer adds long-term narrative tension through fading Earth support and meaningful playstyle choices that shape each player’s unique continent identity.
+Progression in Aetheria: Venus Expansion is deliberately multi-dimensional, rewarding players who master the interplay of physics, chemistry, and automation rather than simple resource accumulation. Growth occurs along three tightly interwoven axes—technical, physical, and systemic—creating a satisfying arc from fragile outpost to thriving floating nation. The meta layer adds long-term narrative depth through the evolving Earth–Venus partnership and meaningful playstyle choices that shape each player’s unique continent identity.
 
 ### 7.1 Progression (Three Growth Axes)
 
@@ -197,27 +199,37 @@ Early gameplay centers on hands-on management of drones, refineries, and power r
 
 ### 7.2 Meta (Long-term Framework & Player Expression)
 
-**Decreasing Earth Support as Difficulty Curve**  
-The campaign begins with regular supply drops that ease early survival. As the story progresses, these deliveries dwindle and eventually cease entirely, creating a natural and emotionally resonant difficulty ramp. Players feel genuine accomplishment when they reach “Independence Thresholds”—moments where the continent sustains itself without any external aid. This meta mechanic also fuels narrative: news bulletins from Earth grow increasingly distant, culminating in a poignant final transmission that marks the birth of a new, permanent human presence on Venus.
+**Earth Partnership & Optional Self-Sufficiency**  
+Earth remains a cooperative trading and research partner for the entire campaign. Regular exchanges bring specialty goods, shared scientific breakthroughs, and uplifting news bulletins that celebrate Venusian milestones alongside terrestrial achievements. Players who choose to pursue full self-sufficiency earn “Independence Threshold” accolades—a proud engineering feat, not an abandonment narrative. Difficulty scales through environmental challenges (wind, acid, resource bottlenecks) and player-chosen goals rather than dwindling external aid.
 
 **Playstyle Choice & Continent Identity**  
 Players can lean toward manual control (minimizing AI investment for fine-grained oversight and higher peak efficiency) or full automation (heavy AI allocation for scalable, low-intervention operation). Hybrid approaches are viable and often optimal. These choices manifest visibly: manual-heavy continents feature intricate, hand-optimized layouts and frequent player interventions; automation-heavy ones display sweeping, efficient mega-structures with glowing AI nodes and minimal human presence. Both paths are valid, generate distinct emergent stories, and support high replayability through different starting conditions or self-imposed challenges.
 
 **Ultimate Long-term Goal**  
-The overarching objective transcends mere survival. Players strive to establish a permanent, self-sufficient floating nation capable of supporting a thriving population and continuing scientific advancement long after Earth contact is lost. Completion is marked by a powerful closure sequence: a full-continent ceremony, a comprehensive “Legacy Score” evaluating efficiency, sustainability, exploration breadth, and aesthetic harmony, plus options to continue in endless sandbox mode or attempt harder challenge scenarios. This structure gives every playthrough a clear sense of purpose and lasting achievement.
+The overarching objective transcends mere survival. Players strive to establish a permanent floating nation capable of supporting a thriving population and advancing science in partnership with Earth. Completion is marked by a celebratory closure sequence: a full-continent ceremony with panning 2D camera work, a comprehensive “Legacy Score” evaluating efficiency, sustainability, exploration breadth, and aesthetic harmony, plus options to continue in endless sandbox mode or attempt harder challenge scenarios. This structure gives every playthrough a clear sense of purpose and lasting achievement.
 
 ## 8. Visual & Audio Direction
 
 The audiovisual direction blends rigorous scientific realism with a subtle, dreamlike fantasy quality that makes the floating continent feel both plausible and wondrous. Venus itself remains a hostile, orange-hued world of dense clouds and dramatic superrotation, yet the player’s artificial structures possess a soft, almost ethereal glow that hints at humanity’s hopeful foothold in an alien sky. This contrast—harsh planetary reality versus the delicate, luminous human presence—forms the emotional core of the visual identity.
 
+### Platform & Presentation Constraints (2D Browser)
+The game ships as a **2D browser experience** using HTML5 canvas (or equivalent 2D renderer) with a **top-down or isometric hex map** and flat 2D UI panels. All systems fantasy from this document—buoyancy, ISRU, wind loads, exploration—maps to readable 2D representations:
+
+- **Hex map**: Modules render as layered 2D sprites or vector shapes showing upper H₂ envelope, mid-layer habitat, and lower industrial fins as distinct color bands or icon stacks.
+- **Exploration**: Surface missions use a separate 2D side-view or simplified top-down mini-map; heat buildup displays as gauge overlays rather than full 3D vehicle models.
+- **Infrastructure**: Transport and power networks appear as animated 2D lines and flow arrows on the hex grid.
+- **UI**: Holographic-style panels, resource dashboards, and tech-tree nodes are flat 2D elements with scan-line shaders where supported.
+- **Cutscenes & milestones**: Replaced by 2D pan/zoom camera moves, schematic reveal animations, particle overlays (hex motes, aurora ribbons), and full-screen UI celebrations—no cinematic 3D camera orbits.
+- **Performance target**: Runs smoothly in modern browsers without WebGL-heavy requirements; graceful degradation on lower-end devices.
+
 ### Visual Style
-Environments use high-fidelity rendering with accurate atmospheric scattering, cloud layering, and wind-driven particle effects, yet structures feature gentle painterly edge softening, warm rim lighting, and faint iridescent highlights on hydrogen cells and carbon-fiber surfaces. Hexagonal modules catch the perpetual twilight in rich oranges and deep teals, while interior spaces glow with soft bioluminescent accents and holographic interfaces. As the continent grows, upper H₂ towers extend with visible gas-cell inflation and shimmering refractive caustics. New modules deploy via elegant unfolding animations accompanied by drifting condensation trails. Exploration of the surface reveals heat-distorted horizons and occasional volcanic glows, all rendered with scientific fidelity but softened by a light fantasy haze that evokes wonder rather than pure desolation. Dynamic time-of-day cycles (shortened by superrotation) and weather events (acid mist, wind shear) further enrich the living world.
+Environments use a rich 2D art style with layered parallax cloud backgrounds, wind-driven particle sprites, and warm Venusian color grading (oranges, deep teals, amber haze). Structures feature gentle painterly edge softening, warm rim highlights, and faint iridescent accents on hydrogen cells and carbon-fiber surfaces. Hexagonal modules catch the perpetual twilight in rich oranges and deep teals, while interior indicators glow with soft bioluminescent accents on 2D module icons. As the continent grows, upper H₂ towers extend with visible 2D scale animations showing gas-cell inflation. New modules deploy via unfolding sprite sequences accompanied by drifting condensation particle effects. Exploration of the surface reveals heat-shimmer overlays and occasional volcanic glow sprites, all rendered with scientific fidelity but softened by a light fantasy haze that evokes wonder rather than pure desolation. Dynamic time-of-day tint shifts (shortened by superrotation) and weather events (acid mist, wind shear) further enrich the living world.
 
 ### Audio Direction – Ambient & Meditative
 The default musical palette is contemplative and emotionally resonant: warm electric piano, soft brush drums, upright bass, and layered atmospheric pads interwoven with processed field recordings of Venusian wind and distant thunder. Pieces evolve slowly, mirroring the patient, long-term nature of colony building. Subtle jazz phrasing—gentle improvisational runs on piano or muted trumpet—occasionally surfaces during calm periods, lending a sophisticated, lived-in warmth without breaking immersion. Environmental audio is equally rich: low-frequency wind shear across the H₂ envelope, the soft hiss of refineries, the rhythmic clack of cargo pods on rails, and faint crew chatter that grows livelier as population increases. All elements mix dynamically; during storms the jazz elements recede in favor of tense, dissonant pads and howling wind layers.
 
 ### Achievement & Milestone Audio-Visual Feedback
-Major accomplishments—new continent tier, successful self-sufficiency milestone, major tech breakthrough, or record-efficiency quarter—trigger deliberately exaggerated, celebratory sequences. The screen gently slows as triumphant orchestral brass and choir swell over the base jazz-ambient bed. A large, elegant Legacy Score display fades in at center screen with particle confetti (glowing hexagonal motes and soft aurora-like ribbons in Venusian oranges and cyans). Crew voice lines cheer in multiple languages, and the camera performs a smooth, cinematic orbit of the newly expanded continent section. These moments are intentionally over-the-top to deliver cathartic payoff after long periods of careful management, reinforcing emotional investment and a sense of genuine achievement.
+Major accomplishments—new continent tier, successful self-sufficiency milestone, major tech breakthrough, or record-efficiency quarter—trigger deliberately exaggerated, celebratory sequences. The screen gently slows as triumphant orchestral brass and choir swell over the base jazz-ambient bed. A large, elegant Legacy Score display fades in at center screen with 2D particle confetti (glowing hexagonal motes and soft aurora-like ribbons in Venusian oranges and cyans). Crew voice lines cheer in multiple languages, and the view performs a smooth 2D pan-and-zoom across the newly expanded continent section. These moments are intentionally over-the-top to deliver cathartic payoff after long periods of careful management, reinforcing emotional investment and a sense of genuine achievement.
 
 ### UI and Feedback Polish
 All interface elements adopt a clean, holographic aesthetic with subtle scan-line and lens-flare touches that feel both futuristic and slightly magical. Resource flow diagrams pulse gently when efficiency improves. Damage or stress warnings appear as elegant amber glyphs rather than harsh red alerts. These small touches maintain readability while preserving the overall tone of hopeful, almost fantastical human ingenuity against the vast Venusian backdrop.
