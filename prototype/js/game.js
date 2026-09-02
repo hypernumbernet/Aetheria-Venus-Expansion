@@ -6,12 +6,16 @@ export function getModuleName(type) {
   return t(`module.${type}`);
 }
 
-/** Per-tick atmospheric intake rates (CORE baseline; intake modules stack). */
+/**
+ * Per-tick atmospheric intake rates (CORE baseline; intake modules stack).
+ * Relative abundances follow Venus atmosphere (§3.1–3.2): CO₂ dominant, N₂ secondary,
+ * sulfur-family and H₂O orders of magnitude lower.
+ */
 export const CORE_INTAKE_RATES = {
   co2: 2.0,
-  n2: 0.07,
-  h2so4: 0.05,
-  h2o: 0.01,
+  n2: 0.073,
+  h2so4: 0.003,
+  h2o: 0.0004,
 };
 
 export const MODULE_TYPES = {
@@ -36,7 +40,7 @@ export const MODULE_TYPES = {
     powerGen: 0,
     powerUse: 2,
     intake: 1,
-    cost: { iron: 2, sulfur: 1 },
+    cost: { iron: 2, carbon: 1, sulfur: 1 },
     desc: 'Adds CORE-equivalent atmospheric intake.',
   },
   isru: {
@@ -69,10 +73,11 @@ export const MODULE_TYPES = {
     color: '#a371f7',
     mass: 8,
     baseBuoyancy: 14,
+    baseWindLoad: 4,
     powerGen: 0,
     powerUse: 1,
     intake: 0,
-    cost: { iron: 2, h2: 3 },
+    cost: { iron: 2, h2: 3, carbon: 1 },
     desc: 'Stores hydrogen lift gas.',
   },
 };
@@ -96,6 +101,17 @@ const H2_EXTEND_WIND = 4;
 const TRADE_SULFUR_COST = 2;
 const TRADE_CREDITS_GAIN = 5;
 
+/** Carried inventory mass coefficient (§7.1): 1 t resource ≈ 0.05 t structural mass. */
+export const INVENTORY_MASS_PER_TON = 0.05;
+
+const COATING_S_COST = 1;
+const COATING_CORROSION_REDUCE = 25;
+const COATING_SLOW_TICKS = 20;
+const COATING_MAINTENANCE_S_PER_TICK = 0.05;
+const CORROSION_RISE = 0.3;
+const CORROSION_RISE_COATED = 0.1;
+const CORROSION_RISE_MAINTAINED = 0.15;
+
 export const SINK_COUNTDOWN_MAX = 10;
 export const SINK_WARNING_AT = 5;
 
@@ -116,6 +132,7 @@ export function createInitialState(difficulty = 'normal') {
     type: 'core',
     h2Layers: 1,
     corrosion: 0,
+    coatedTicks: 0,
   });
   const inventory = createEmptyInventory();
   inventory.h2so4 = 1;
@@ -247,7 +264,7 @@ export function placeModule(state, q, r) {
   }
 
   const modules = new Map(state.modules);
-  modules.set(key, { type, h2Layers: 1, corrosion: 0 });
+  modules.set(key, { type, h2Layers: 1, corrosion: 0, coatedTicks: 0 });
   return {
     ok: true,
     state: {
@@ -282,6 +299,33 @@ export function extendH2(state, key) {
   };
 }
 
+export function applySulfurCoating(state, key) {
+  if (state.gameOver) return { ok: false, reason: t('msg.gameOver') };
+
+  const mod = state.modules.get(key);
+  if (!mod) return { ok: false, reason: t('msg.noModuleSelected') };
+  if (state.inventory.sulfur < COATING_S_COST) {
+    return { ok: false, reason: t('msg.needSulfurCoating', { amount: COATING_S_COST }) };
+  }
+
+  const modules = new Map(state.modules);
+  const newCorrosion = Math.max(0, mod.corrosion - COATING_CORROSION_REDUCE);
+  modules.set(key, {
+    ...mod,
+    corrosion: newCorrosion,
+    coatedTicks: COATING_SLOW_TICKS,
+  });
+  const inventory = {
+    ...state.inventory,
+    sulfur: state.inventory.sulfur - COATING_S_COST,
+  };
+  return {
+    ok: true,
+    state: { ...state, modules, inventory },
+    message: t('msg.coatingApplied'),
+  };
+}
+
 export function tradeWithEarth(state) {
   if (state.gameOver) return { ok: false, reason: t('msg.gameOver') };
 
@@ -300,8 +344,17 @@ export function tradeWithEarth(state) {
   };
 }
 
+export function computeInventoryMass(inventory) {
+  let total = 0;
+  for (const id of INVENTORY_IDS) {
+    if (id === 'credits') continue;
+    total += (inventory[id] ?? 0) * INVENTORY_MASS_PER_TON;
+  }
+  return total;
+}
+
 export function computeStats(state) {
-  let mass = 0;
+  let moduleMass = 0;
   let buoyancy = 0;
   let powerGen = 0;
   let powerUse = 0;
@@ -312,20 +365,38 @@ export function computeStats(state) {
 
   for (const mod of state.modules.values()) {
     const def = MODULE_TYPES[mod.type];
-    mass += def.mass;
+    moduleMass += def.mass;
     buoyancy += def.baseBuoyancy + (mod.h2Layers - 1) * H2_EXTEND_BUOYANCY;
     powerGen += def.powerGen;
     powerUse += def.powerUse;
     intakeUnits += def.intake ?? 0;
+    if (def.baseWindLoad) {
+      windLoad += def.baseWindLoad;
+    }
     windLoad += (mod.h2Layers - 1) * H2_EXTEND_WIND;
     corrosion += mod.corrosion;
     if (mod.type === 'isru') isruCount++;
   }
 
+  const inventoryMass = computeInventoryMass(state.inventory);
+  const mass = moduleMass + inventoryMass;
   const netLift = buoyancy - mass;
   const powerNet = powerGen - powerUse;
 
-  return { mass, buoyancy, netLift, powerGen, powerUse, powerNet, intakeUnits, windLoad, corrosion, isruCount };
+  return {
+    mass,
+    moduleMass,
+    inventoryMass,
+    buoyancy,
+    netLift,
+    powerGen,
+    powerUse,
+    powerNet,
+    intakeUnits,
+    windLoad,
+    corrosion,
+    isruCount,
+  };
 }
 
 function applyIntake(inventory, intakeUnits) {
@@ -425,10 +496,32 @@ export function gameTick(state) {
     events.push(t('msg.powerDeficit'));
   }
 
-  // Corrosion tick
+  // Corrosion tick (§9 — S coating slows rise)
+  let maintenanceSpent = false;
+  const corrodedModules = [...modules.values()].filter((m) => m.corrosion > 10).length;
+  const canMaintain = corrodedModules > 0
+    && (inventory.sulfur ?? 0) >= COATING_MAINTENANCE_S_PER_TICK;
+
   for (const [key, mod] of modules) {
-    const c = Math.min(100, mod.corrosion + 0.3);
-    modules.set(key, { ...mod, corrosion: c });
+    let rise = CORROSION_RISE;
+    let coatedTicks = mod.coatedTicks ?? 0;
+
+    if (coatedTicks > 0) {
+      rise = CORROSION_RISE_COATED;
+      coatedTicks -= 1;
+    } else if (canMaintain && mod.corrosion > 10) {
+      rise = CORROSION_RISE_MAINTAINED;
+      if (!maintenanceSpent) {
+        inventory = {
+          ...inventory,
+          sulfur: inventory.sulfur - COATING_MAINTENANCE_S_PER_TICK,
+        };
+        maintenanceSpent = true;
+      }
+    }
+
+    const c = Math.min(100, mod.corrosion + rise);
+    modules.set(key, { ...mod, corrosion: c, coatedTicks });
   }
 
   // Wind stress warning
@@ -477,4 +570,4 @@ export function restartGame(difficulty = 'normal') {
   return createInitialState(difficulty);
 }
 
-export { H2_EXTEND_COST, TRADE_SULFUR_COST };
+export { H2_EXTEND_COST, TRADE_SULFUR_COST, COATING_S_COST };
