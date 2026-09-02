@@ -125,7 +125,7 @@ const STRINGS = {
       tickRate: '1 tick / second',
       difficulty: 'Difficulty',
     },
-    footer: 'CORE intakes CO₂ continuously. ISRU: acid split → H₂, Bosch → C, electrolysis → C + O₂. Buy Fe/H₂O from Earth market.',
+    footer: 'CORE intakes CO₂ continuously. ISRU: acid split → H₂, Bosch → C, electrolysis → O₂ only. Buy Fe/H₂O from Earth market.',
     inventory: {
       title: 'Inventory & Earth Market',
       intro: 'Construction requires stocked materials. Paid Earth market: Fe and H₂O only (separate from periodic aid).',
@@ -160,7 +160,7 @@ const STRINGS = {
     },
     material: {
       co2: { name: 'Carbon dioxide', desc: 'Dominant atmospheric gas. Harvested by CORE/intake.', obtain: 'Atmospheric intake (CORE)' },
-      carbon: { name: 'Carbon', desc: 'Structural carbon from CO₂ reduction (Bosch, electrolysis).', obtain: 'ISRU processing' },
+      carbon: { name: 'Carbon', desc: 'Structural carbon from CO₂ reduction (Bosch).', obtain: 'ISRU Bosch' },
       n2: { name: 'Nitrogen', desc: 'Secondary atmospheric component.', obtain: 'Atmospheric intake (CORE)' },
       h2so4: { name: 'Sulfuric acid', desc: 'Trace harvest from acid clouds. ISRU feedstock.', obtain: 'Atmospheric intake (CORE)' },
       h2: { name: 'Hydrogen', desc: 'Produced by acid split. Used as lift gas and Bosch input.', obtain: 'ISRU acid split' },
@@ -180,6 +180,7 @@ const STRINGS = {
       insufficientCredits: 'Insufficient credits (need {need}₵, have {have}₵). Export sulfur to Earth to earn more.',
       bought: 'Bought {name} ×{amount} for {cost}₵.',
       mustBeAdjacent: 'Must build on a unit adjacent to the floating continent.',
+      noBuildSelected: 'Select a module type to build first.',
       invalidModule: 'Invalid module.',
       insufficientMaterials: 'Insufficient materials: {detail}. Buy from the Earth market in Inventory, or wait for intake.',
       missingEntry: '{name} (need {need}, have {have})',
@@ -254,7 +255,7 @@ const STRINGS = {
       tickRate: '1秒 = 1ティック',
       difficulty: '難易度',
     },
-    footer: 'コアがCO₂を常時採取。ISRU：硫酸分解→H₂、ボッシュ→C、電解→C+O₂。Fe/H₂Oは地球市場で購入。',
+    footer: 'コアがCO₂を常時採取。ISRU：硫酸分解→H₂、ボッシュ→C、電解→O₂のみ。Fe/H₂Oは地球市場で購入。',
     inventory: {
       title: '在庫・地球市場',
       intro: '建設には在庫の材料が必要です。有料の地球市場では Fe と H₂O のみ購入可能（定期援助とは別）。',
@@ -289,7 +290,7 @@ const STRINGS = {
     },
     material: {
       co2: { name: '二酸化炭素', desc: '大気の主成分。コア／インテークで常時採取。', obtain: '大気採取（コア）' },
-      carbon: { name: '炭素', desc: 'CO₂還元（ボッシュ・電解）で得る構造用炭素。', obtain: 'ISRU加工' },
+      carbon: { name: '炭素', desc: 'CO₂還元（ボッシュ）で得る構造用炭素。', obtain: 'ISRUボッシュ' },
       n2: { name: '窒素', desc: '大気の二次成分。', obtain: '大気採取（コア）' },
       h2so4: { name: '硫酸', desc: '硫酸雲からの微量回収。ISRUの原料。', obtain: '大気採取（コア）' },
       h2: { name: '水素', desc: '硫酸分解で生成。浮力ガス・ボッシュ原料。', obtain: 'ISRU硫酸分解' },
@@ -309,6 +310,7 @@ const STRINGS = {
       insufficientCredits: 'クレジット不足（必要 {need}₵、所持 {have}₵）。硫黄を地球へ輸出して稼いでください。',
       bought: '{name} ×{amount} を {cost}₵ で購入しました。',
       mustBeAdjacent: '浮遊大陸に隣接するユニットにのみ建設できます。',
+      noBuildSelected: '先に建設するモジュール種別を選んでください。',
       invalidModule: '無効なモジュールです。',
       insufficientMaterials: '材料不足：{detail}。在庫画面で地球市場から購入するか、採取を待ってください。',
       missingEntry: '{name}（必要 {need}、所持 {have}）',

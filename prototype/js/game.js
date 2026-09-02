@@ -163,7 +163,7 @@ export function createInitialState(difficulty = 'normal') {
     inventory,
     tick: 0,
     difficulty,
-    selectedBuild: 'isru',
+    selectedBuild: null,
     selectedHex: null,
     messages: [],
     sinkCountdown: 0,
@@ -268,6 +268,7 @@ export function placeModule(state, q, r) {
   if (!placeable.has(key)) return { ok: false, reason: t('msg.mustBeAdjacent') };
 
   const type = state.selectedBuild;
+  if (!type) return { ok: false, reason: t('msg.noBuildSelected') };
   const def = MODULE_TYPES[type];
   if (!def || !def.cost) return { ok: false, reason: t('msg.invalidModule') };
 
@@ -291,6 +292,7 @@ export function placeModule(state, q, r) {
       modules,
       inventory: payCost(state.inventory, def.cost),
       selectedHex: key,
+      selectedBuild: null,
     },
     message: t('msg.built', { name: getModuleName(type), cost: formatBuildCost(def.cost) }),
   };
