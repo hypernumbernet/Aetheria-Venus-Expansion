@@ -77,7 +77,7 @@ export const MODULE_TYPES = {
     powerGen: 0,
     powerUse: 1,
     intake: 0,
-    cost: { iron: 2, h2: 1, carbon: 1 },
+    cost: { iron: 1, h2: 1, carbon: 1 },
     desc: 'Stores hydrogen lift gas.',
   },
 };
@@ -318,6 +318,25 @@ export function extendH2(state, key) {
   };
 }
 
+/** §7.3 — lower H₂ envelope (inverse of extend); floor is 1 layer. */
+export function lowerH2(state, key) {
+  if (state.gameOver) return { ok: false, reason: t('msg.gameOver') };
+
+  const mod = state.modules.get(key);
+  if (!mod) return { ok: false, reason: t('msg.noModuleSelected') };
+  if (mod.h2Layers <= 1) {
+    return { ok: false, reason: t('msg.h2MinHeight') };
+  }
+
+  const modules = new Map(state.modules);
+  modules.set(key, { ...mod, h2Layers: mod.h2Layers - 1 });
+  return {
+    ok: true,
+    state: { ...state, modules },
+    message: t('msg.h2Lowered'),
+  };
+}
+
 export function applySulfurCoating(state, key) {
   if (state.gameOver) return { ok: false, reason: t('msg.gameOver') };
 
@@ -474,20 +493,20 @@ function processIsru(inventory, isruCount, powerNet) {
       processed++;
       continue;
     }
-    // Bosch: CO₂ + 2 H₂ → C + H₂O
-    if (inv.co2 >= 1 && inv.h2 >= 2) {
+    // Bosch (§4.2 primary C route): CO₂ + H₂ → C + H₂O — runs when H₂ ≥ 1
+    if (inv.co2 >= 1 && inv.h2 >= 1) {
       inv.co2 -= 1;
-      inv.h2 -= 2;
+      inv.h2 -= 1;
       inv.carbon = (inv.carbon ?? 0) + 0.4;
       inv.h2o = (inv.h2o ?? 0) + 0.8;
       processed++;
       continue;
     }
-    // CO₂ electrolysis: 2 CO₂ → C + O₂
-    if (inv.co2 >= 2) {
-      inv.co2 -= 2;
-      inv.carbon = (inv.carbon ?? 0) + 0.3;
-      inv.o2 = (inv.o2 ?? 0) + 0.6;
+    // CO₂ electrolysis fallback: low C yield; O₂ feeds life-support sink
+    if (inv.co2 >= 1) {
+      inv.co2 -= 1;
+      inv.carbon = (inv.carbon ?? 0) + 0.05;
+      inv.o2 = (inv.o2 ?? 0) + 0.1;
       processed++;
     }
   }

@@ -10,6 +10,7 @@ import {
   MODULE_TYPES,
   placeModule,
   extendH2,
+  lowerH2,
   applySulfurCoating,
   applyCarbonLightening,
   tradeWithEarth,
@@ -239,6 +240,7 @@ function updateUI() {
   const sel = state.selectedHex;
   const info = document.getElementById('selected-info');
   const extendBtn = document.getElementById('btn-extend-h2');
+  const lowerBtn = document.getElementById('btn-lower-h2');
   const coatingBtn = document.getElementById('btn-apply-coating');
   if (sel && state.modules.has(sel)) {
     const mod = state.modules.get(sel);
@@ -250,6 +252,9 @@ function updateUI() {
       corrosion: mod.corrosion.toFixed(0),
     });
     extendBtn.disabled = state.gameOver || state.inventory.h2 < H2_EXTEND_COST || mod.h2Layers >= 4;
+    if (lowerBtn) {
+      lowerBtn.disabled = state.gameOver || mod.h2Layers <= 1;
+    }
     coatingBtn.disabled = state.gameOver
       || (state.inventory.sulfur ?? 0) < COATING_S_COST
       || mod.corrosion <= 0;
@@ -262,6 +267,7 @@ function updateUI() {
   } else {
     info.textContent = t('panel.selectedNone');
     extendBtn.disabled = true;
+    if (lowerBtn) lowerBtn.disabled = true;
     coatingBtn.disabled = true;
     const lightenBtn = document.getElementById('btn-carbon-lighten');
     if (lightenBtn) lightenBtn.disabled = true;
@@ -477,6 +483,20 @@ document.getElementById('btn-extend-h2').addEventListener('click', () => {
     state = result.state;
     const [q, r] = state.selectedHex.split(',').map(Number);
     spawnParticles(q, r, '#a371f7');
+    showToast(result.message);
+  } else {
+    showToast(result.reason);
+  }
+  draw();
+});
+
+document.getElementById('btn-lower-h2').addEventListener('click', () => {
+  if (!state || !state.selectedHex || state.gameOver) return;
+  const result = lowerH2(state, state.selectedHex);
+  if (result.ok) {
+    state = result.state;
+    const [q, r] = state.selectedHex.split(',').map(Number);
+    spawnParticles(q, r, '#7c5cbf');
     showToast(result.message);
   } else {
     showToast(result.reason);
