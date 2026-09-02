@@ -465,11 +465,15 @@ canvas.addEventListener('click', (e) => {
     return;
   }
 
+  if (!state.selectedBuild) return;
+
+  const buildType = state.selectedBuild;
   const result = placeModule(state, q, r);
   if (result.ok) {
     state = result.state;
-    spawnParticles(q, r, MODULE_TYPES[state.selectedBuild].color);
+    spawnParticles(q, r, MODULE_TYPES[buildType].color);
     showToast(result.message);
+    buildButtons();
   } else {
     showToast(result.reason);
   }
@@ -602,6 +606,22 @@ document.getElementById('btn-restart').addEventListener('click', () => {
   document.querySelector('input[name="difficulty"][value="normal"]').checked = true;
   newgameDialog.showModal();
   draw();
+});
+
+function cancelConstructionMode() {
+  if (!state?.selectedBuild) return false;
+  state = { ...state, selectedBuild: null };
+  buildButtons();
+  draw();
+  return true;
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (newgameDialog.open || gameoverOverlay.hidden === false) return;
+  if (inventoryDialog.open || settingsDialog.open) return;
+  if (!gameStarted || !state) return;
+  cancelConstructionMode();
 });
 
 onLocaleChange(() => applyLocale());
