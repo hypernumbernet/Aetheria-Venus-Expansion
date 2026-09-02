@@ -487,14 +487,16 @@ function processIsru(inventory, isruCount, powerNet) {
     // H₂SO₄ → H₂ + S + H₂O
     if (inv.h2so4 >= 1) {
       inv.h2so4 -= 1;
-      inv.h2 = (inv.h2 ?? 0) + 1.2;
+      inv.h2 = (inv.h2 ?? 0) + 2.2;
       inv.sulfur = (inv.sulfur ?? 0) + 0.4;
       inv.h2o = (inv.h2o ?? 0) + 0.4;
       processed++;
       continue;
     }
-    // Bosch (§4.2 primary C route): CO₂ + H₂ → C + H₂O — runs when H₂ ≥ 1
-    if (inv.co2 >= 1 && inv.h2 >= 1) {
+    // Bosch (§4.2 sole C route): reserve 1t H₂ for buoyancy cell — spend only surplus
+    const h2Reserve = 1;
+    const h2Spendable = (inv.h2 ?? 0) - h2Reserve;
+    if (inv.co2 >= 1 && h2Spendable >= 1) {
       inv.co2 -= 1;
       inv.h2 -= 1;
       inv.carbon = (inv.carbon ?? 0) + 0.4;
@@ -502,10 +504,9 @@ function processIsru(inventory, isruCount, powerNet) {
       processed++;
       continue;
     }
-    // CO₂ electrolysis fallback: low C yield; O₂ feeds life-support sink
+    // CO₂ electrolysis: O₂ only (life-support); no C — §4.2 Bosch is the C route
     if (inv.co2 >= 1) {
       inv.co2 -= 1;
-      inv.carbon = (inv.carbon ?? 0) + 0.05;
       inv.o2 = (inv.o2 ?? 0) + 0.1;
       processed++;
     }

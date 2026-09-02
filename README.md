@@ -39,8 +39,8 @@ Then open **http://localhost:8080**.
 4. **Build modules** — Select Intake, ISRU Refinery, Solar Array, or H₂ Buoyancy Cell, then click a `+` hex adjacent to your continent. Every build costs **Fe** from inventory; intake and H₂ cells also need **C** (from ISRU). Your first ISRU only needs **Fe + S**. **H₂ Buoyancy Cell** costs **1 Fe**, 1 H₂, and 1 C.
 5. **ISRU loop** — With positive power, each ISRU refinery per tick tries, in order:
    - **Acid split**: H₂SO₄ → H₂ + S + H₂O
-   - **Bosch** (primary C route): CO₂ + H₂ → C + H₂O — runs when H₂ ≥ 1
-   - **CO₂ electrolysis** (fallback): CO₂ → C (0.05) + O₂ — only when Bosch cannot run; low C yield when hydrogen is scarce
+   - **Bosch** (sole C route): CO₂ + H₂ → C + H₂O — runs only when H₂ above the 1t buoyancy-cell reserve is ≥ 1
+   - **CO₂ electrolysis**: CO₂ → O₂ only (no C); feeds the CORE life-support sink
 6. **Buoyancy** — H₂ Buoyancy Cells add lift and **base wind load**; **extend** H₂ layers (costs H₂) for more buoyancy and wind load, or **lower** layers to reduce wind load (minimum 1 layer). **Carried inventory adds mass** (Fe, H₂O, S, H₂, O₂, H₂SO₄ count; **C and CO₂ do not**). **Carbon composite** on a selected module spends C to reduce mass and add buoyancy.
 7. **Life support** — CORE continuously consumes **O₂** from inventory, so electrolysis byproduct does not pile up as cargo mass.
 8. **Corrosion** — Acidic clouds raise corrosion. Select a module and apply **Sulfur Coating** (1 t S) to reduce corrosion and slow further rise; trace S upkeep can slow corrosion fleet-wide.
