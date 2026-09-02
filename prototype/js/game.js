@@ -504,7 +504,7 @@ export function gameTick(state) {
   let maintenanceSpent = false;
   const corrodedModules = [...modules.values()].filter((m) => m.corrosion > 10).length;
   const canMaintain = corrodedModules > 0
-    && (inventory.sulfur ?? 0) >= COATING_MAINTENANCE_S_PER_TICK;
+    && (inventory.sulfur ?? 0) > 1;
 
   for (const [key, mod] of modules) {
     let rise = CORROSION_RISE;
