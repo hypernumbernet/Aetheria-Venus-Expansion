@@ -125,7 +125,7 @@ const STRINGS = {
     footer: 'CORE intakes CO₂ continuously. ISRU: acid split → H₂, Bosch → C, electrolysis → C + O₂. Buy Fe/H₂O from Earth market.',
     inventory: {
       title: 'Inventory & Earth Market',
-      intro: 'Construction requires stocked materials. Buy from Earth with credits (paid market, separate from periodic aid).',
+      intro: 'Construction requires stocked materials. Paid Earth market: Fe and H₂O only (separate from periodic aid).',
       buy: 'Buy ({price}₵)',
       creditsHint: 'Earn by exporting sulfur to Earth',
       close: 'Close',
@@ -243,7 +243,7 @@ const STRINGS = {
     footer: 'コアがCO₂を常時採取。ISRU：硫酸分解→H₂、ボッシュ→C、電解→C+O₂。Fe/H₂Oは地球市場で購入。',
     inventory: {
       title: '在庫・地球市場',
-      intro: '建設には在庫の材料が必要です。クレジットで地球市場から購入できます（定期援助とは別）。',
+      intro: '建設には在庫の材料が必要です。有料の地球市場では Fe と H₂O のみ購入可能（定期援助とは別）。',
       buy: '購入（{price}₵）',
       creditsHint: '硫黄を地球へ輸出して獲得',
       close: '閉じる',

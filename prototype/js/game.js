@@ -119,6 +119,7 @@ export function createInitialState(difficulty = 'normal') {
   });
   const inventory = createEmptyInventory();
   inventory.h2so4 = 1;
+  inventory.sulfur = 1;
   inventory.credits = 20;
 
   return {

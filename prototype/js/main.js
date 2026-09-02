@@ -223,6 +223,7 @@ function updateUI() {
   set('res-n2', state.inventory.n2.toFixed(1));
   set('res-h2so4', state.inventory.h2so4.toFixed(1));
   set('res-h2', state.inventory.h2.toFixed(1));
+  set('res-o2', state.inventory.o2.toFixed(1));
   set('res-h2o', state.inventory.h2o.toFixed(1));
   set('res-sulfur', state.inventory.sulfur.toFixed(1));
   set('res-iron', state.inventory.iron.toFixed(1));
