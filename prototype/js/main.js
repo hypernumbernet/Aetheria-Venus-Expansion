@@ -2,7 +2,7 @@ import {
   HEX_DRAW_RADIUS,
   hexKey,
   hexToPixel,
-  pixelToHex,
+  hexAtPixel,
   drawHex,
 } from './hex.js';
 import {
@@ -11,6 +11,7 @@ import {
   placeModule,
   extendH2,
   applySulfurCoating,
+  applyCarbonLightening,
   tradeWithEarth,
   buyMaterial,
   computeStats,
@@ -21,6 +22,7 @@ import {
   getModuleName,
   H2_EXTEND_COST,
   COATING_S_COST,
+  C_LIGHTEN_COST,
   SINK_COUNTDOWN_MAX,
   SINK_WARNING_AT,
 } from './game.js';
@@ -243,6 +245,7 @@ function updateUI() {
     info.textContent = t('selected', {
       name: getModuleName(mod.type),
       coords: sel,
+      floorArea: t('unit.floorArea'),
       layers: mod.h2Layers,
       corrosion: mod.corrosion.toFixed(0),
     });
@@ -250,10 +253,18 @@ function updateUI() {
     coatingBtn.disabled = state.gameOver
       || (state.inventory.sulfur ?? 0) < COATING_S_COST
       || mod.corrosion <= 0;
+    const lightenBtn = document.getElementById('btn-carbon-lighten');
+    if (lightenBtn) {
+      lightenBtn.disabled = state.gameOver
+        || (state.inventory.carbon ?? 0) < C_LIGHTEN_COST
+        || (mod.carbonLighten ?? 0) >= 3;
+    }
   } else {
     info.textContent = t('panel.selectedNone');
     extendBtn.disabled = true;
     coatingBtn.disabled = true;
+    const lightenBtn = document.getElementById('btn-carbon-lighten');
+    if (lightenBtn) lightenBtn.disabled = true;
   }
 
   updateSinkWarning();
@@ -385,6 +396,16 @@ function canvasCoords(e) {
   };
 }
 
+function getInteractableHexKeys() {
+  if (!state) return [];
+  const placeable = state.gameOver ? new Set() : getPlaceableHexes(state);
+  return [...new Set([...state.modules.keys(), ...placeable])];
+}
+
+function hexUnderPointer(layoutX, layoutY) {
+  return hexAtPixel(layoutX, layoutY, getInteractableHexKeys());
+}
+
 function isTickPaused() {
   return newgameDialog.open
     || inventoryDialog.open
@@ -413,7 +434,8 @@ function runTick() {
 
 canvas.addEventListener('mousemove', (e) => {
   const { x, y } = canvasCoords(e);
-  hoverHex = pixelToHex(x, y);
+  const hit = hexUnderPointer(x, y);
+  hoverHex = hit ? { q: hit.q, r: hit.r } : null;
   draw();
 });
 
@@ -426,8 +448,10 @@ canvas.addEventListener('click', (e) => {
   if (!gameStarted || !state || state.gameOver) return;
 
   const { x, y } = canvasCoords(e);
-  const { q, r } = pixelToHex(x, y);
-  const key = hexKey(q, r);
+  const hit = hexUnderPointer(x, y);
+  if (!hit) return;
+
+  const { q, r, key } = hit;
 
   if (state.modules.has(key)) {
     state = { ...state, selectedHex: key };
@@ -467,6 +491,20 @@ document.getElementById('btn-apply-coating').addEventListener('click', () => {
     state = result.state;
     const [q, r] = state.selectedHex.split(',').map(Number);
     spawnParticles(q, r, '#d29922');
+    showToast(result.message);
+  } else {
+    showToast(result.reason);
+  }
+  draw();
+});
+
+document.getElementById('btn-carbon-lighten').addEventListener('click', () => {
+  if (!state || !state.selectedHex || state.gameOver) return;
+  const result = applyCarbonLightening(state, state.selectedHex);
+  if (result.ok) {
+    state = result.state;
+    const [q, r] = state.selectedHex.split(',').map(Number);
+    spawnParticles(q, r, '#58a6ff');
     showToast(result.message);
   } else {
     showToast(result.reason);
@@ -525,6 +563,14 @@ inventoryDialog.addEventListener('click', (e) => {
 
 document.getElementById('btn-start-game').addEventListener('click', () => {
   startGame(getSelectedDifficulty());
+});
+
+newgameDialog.addEventListener('cancel', (e) => {
+  e.preventDefault();
+});
+
+newgameDialog.addEventListener('close', () => {
+  if (!gameStarted) newgameDialog.showModal();
 });
 
 document.getElementById('btn-restart').addEventListener('click', () => {

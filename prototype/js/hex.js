@@ -54,10 +54,13 @@ export function getNeighbors(q, r) {
   return NEIGHBORS.map((d) => ({ q: q + d.q, r: r + d.r }));
 }
 
+/** Flat-top hex: first vertex at 30° (matches pointInHex / axial layout). */
+const FLAT_TOP_ANGLE_OFFSET = Math.PI / 6;
+
 export function drawHex(ctx, cx, cy, size, fill, stroke, lineWidth = 2) {
   ctx.beginPath();
   for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 3) * i;
+    const angle = (Math.PI / 3) * i + FLAT_TOP_ANGLE_OFFSET;
     const x = cx + size * Math.cos(angle);
     const y = cy + size * Math.sin(angle);
     if (i === 0) ctx.moveTo(x, y);
@@ -81,4 +84,27 @@ export function pointInHex(px, py, cx, cy, size) {
   const halfH = (SQRT3 / 2) * size;
   if (dx > size || dy > halfH) return false;
   return halfH * size - halfH * dx - (size / 2) * dy >= 0;
+}
+
+/**
+ * Find the hex key under a pixel, using the same center + radius as drawHex.
+ * @param {number} px x in hex layout space (canvas coords minus offset)
+ * @param {number} py y in hex layout space
+ * @param {Iterable<string>} keys candidate hex keys to test
+ * @returns {{ q: number, r: number, key: string } | null}
+ */
+export function hexAtPixel(px, py, keys) {
+  let best = null;
+  let bestDist = Infinity;
+  for (const key of keys) {
+    const { q, r } = parseKey(key);
+    const { x, y } = hexToPixel(q, r);
+    if (!pointInHex(px, py, x, y, HEX_DRAW_RADIUS)) continue;
+    const dist = (px - x) ** 2 + (py - y) ** 2;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = { q, r, key };
+    }
+  }
+  return best;
 }
