@@ -234,7 +234,20 @@ Major accomplishments—new continent tier, successful self-sufficiency mileston
 ### UI and Feedback Polish
 All interface elements adopt a clean, holographic aesthetic with subtle scan-line and lens-flare touches that feel both futuristic and slightly magical. Resource flow diagrams pulse gently when efficiency improves. Damage or stress warnings appear as elegant amber glyphs rather than harsh red alerts. These small touches maintain readability while preserving the overall tone of hopeful, almost fantastical human ingenuity against the vast Venusian backdrop.
 
-## 9. Prototype Sprint Notes
+## 9. Documentation Hierarchy & Terminology (Next Sprint)
+
+**Playable rules source of truth**: For the next prototype sprint, the Japanese rules document **[ゲームルール.md](./ゲームルール.md)** overrides this GDD where they differ—especially **scale**, **terminology**, and **atmospheric resource handling**.
+
+| Topic | GDD (this file) | ゲームルール.md (authoritative for sprint) |
+|-------|-----------------|---------------------------------------------|
+| One hex on the map | Historically described as a "40m hexagonal prism unit" | A **small module** with **~100 m² floor area** (regular hex ≈ 6.2 m side). Never called a continent. |
+| Floating continent | Growth of linked modules | The **connected assembly** of many units only (**浮遊大陸**). |
+| Atmospheric harvest | Various chains | **CO₂-first** mix from real Venus composition; **CO₂** and **C** as first-class elements; **CORE** passive intake. |
+| Iron | Surface / trade | Not atmospheric; **required to build**; Earth market is a hopeful partner (no dwindling support). **Difficulty** sets free periodic **H₂O + Fe** aid only (see ゲームルール.md §8). |
+
+Implementers should read ゲームルール.md before changing prototype behavior. Short GDD edits (like this section) may be added to reduce contradiction; a full GDD rewrite is not required each sprint.
+
+## 10. Prototype Sprint Notes
 
 The browser prototype (`prototype/`) validates core tension loops before full production:
 
