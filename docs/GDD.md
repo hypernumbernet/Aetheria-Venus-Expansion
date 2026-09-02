@@ -243,7 +243,7 @@ All interface elements adopt a clean, holographic aesthetic with subtle scan-lin
 | One hex on the map | Historically described as a "40m hexagonal prism unit" | A **small module** with **~100 m² floor area** (regular hex ≈ 6.2 m side). Never called a continent. |
 | Floating continent | Growth of linked modules | The **connected assembly** of many units only (**浮遊大陸**). |
 | Atmospheric harvest | Various chains | **CO₂-first** mix from real Venus composition; **CO₂** and **C** as first-class elements; **CORE** passive intake. |
-| Iron | Surface / trade | Not atmospheric; **required to build**; Earth market is a hopeful partner (no dwindling support). |
+| Iron | Surface / trade | Not atmospheric; **required to build**; Earth market is a hopeful partner (no dwindling support). **Difficulty** sets free periodic **H₂O + Fe** aid only (see ゲームルール.md §8). |
 
 Implementers should read ゲームルール.md before changing prototype behavior. Short GDD edits (like this section) may be added to reduce contradiction; a full GDD rewrite is not required each sprint.
 
