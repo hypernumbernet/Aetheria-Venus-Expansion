@@ -27,7 +27,7 @@
 
       <aside class="sidebar">
         <section class="panel">
-          <h2 data-i18n="panel.continentStatus">大陸ステータス</h2>
+          <h2 data-i18n="panel.continentStatus">浮遊大陸ステータス</h2>
           <dl class="stats">
             <div><dt data-i18n="panel.buoyancy">浮力</dt><dd id="stat-buoyancy">—</dd></div>
             <div><dt data-i18n="panel.mass">質量</dt><dd id="stat-mass">—</dd></div>
@@ -35,14 +35,20 @@
             <div><dt data-i18n="panel.power">電力</dt><dd id="stat-power">—</dd></div>
             <div><dt data-i18n="panel.windLoad">風荷重</dt><dd id="stat-wind">—</dd></div>
             <div><dt data-i18n="panel.corrosion">腐食</dt><dd id="stat-corrosion">—</dd></div>
+            <div><dt data-i18n="panel.difficulty">難易度</dt><dd id="stat-difficulty">—</dd></div>
           </dl>
         </section>
 
         <section class="panel">
           <h2 data-i18n="panel.resources">資源</h2>
           <dl class="stats">
+            <div><dt>CO₂</dt><dd id="res-co2">—</dd></div>
+            <div><dt>C</dt><dd id="res-carbon">—</dd></div>
+            <div><dt>N₂</dt><dd id="res-n2">—</dd></div>
             <div><dt>H₂SO₄</dt><dd id="res-h2so4">—</dd></div>
             <div><dt>H₂</dt><dd id="res-h2">—</dd></div>
+            <div><dt>O₂</dt><dd id="res-o2">—</dd></div>
+            <div><dt>H₂O</dt><dd id="res-h2o">—</dd></div>
             <div><dt data-i18n="panel.sulfur">硫黄</dt><dd id="res-sulfur">—</dd></div>
             <div><dt data-i18n="panel.iron">鉄</dt><dd id="res-iron">—</dd></div>
             <div><dt data-i18n="panel.earthCredits">地球クレジット</dt><dd id="res-credits">—</dd></div>
@@ -53,11 +59,11 @@
         <section class="panel">
           <h2 data-i18n="panel.buildModule">モジュール建設</h2>
           <div class="build-buttons" id="build-buttons"></div>
-          <p class="hint" data-i18n="panel.buildHint">大陸に隣接する空きヘックスをクリック。</p>
+          <p class="hint" data-i18n="panel.buildHint">浮遊大陸に隣接する空きユニットをクリック。</p>
         </section>
 
         <section class="panel">
-          <h2 data-i18n="panel.selectedHex">選択中のヘックス</h2>
+          <h2 data-i18n="panel.selectedUnit">選択中のユニット</h2>
           <p id="selected-info" class="selected-info">—</p>
           <button id="btn-extend-h2" class="action-btn" disabled data-i18n="panel.extendH2">H₂層を延伸（浮力↑・風荷重↑）</button>
           <button id="btn-trade" class="action-btn secondary" data-i18n="panel.tradeEarth">地球へ輸出（S → クレジット）</button>
@@ -71,9 +77,32 @@
     </main>
 
     <footer class="footer">
-      <p data-i18n="footer">ISRUループ：硫酸雲を回収 → 電気分解でH₂ → 浮力エンベロープを延伸。建設前に地球市場で材料を購入。</p>
+      <p data-i18n="footer">コアがCO₂を常時採取。ISRU：硫酸分解→H₂、ボッシュ→C、電解→C+O₂。Fe/H₂Oは地球市場で購入。</p>
     </footer>
   </div>
+
+  <dialog id="newgame-dialog" class="newgame-dialog">
+    <div class="dialog-header">
+      <h2 data-i18n="newGame.title">ニューゲーム</h2>
+    </div>
+    <p class="dialog-intro" data-i18n="newGame.intro">難易度を選んでください。地球定期援助（H₂O + Fe）は難易度で決まり、プレイ中は変更できません。</p>
+    <fieldset class="difficulty-fieldset">
+      <legend data-i18n="newGame.difficulty">難易度</legend>
+      <label class="difficulty-option">
+        <input type="radio" name="difficulty" value="easy">
+        <span><strong data-i18n="newGame.easy">やさしい</strong><br><small data-i18n="newGame.easyDesc">援助：120ティックごとに H₂O +4、Fe +2</small></span>
+      </label>
+      <label class="difficulty-option">
+        <input type="radio" name="difficulty" value="normal" checked>
+        <span><strong data-i18n="newGame.normal">ふつう</strong><br><small data-i18n="newGame.normalDesc">援助：120ティックごとに H₂O +2、Fe +1</small></span>
+      </label>
+      <label class="difficulty-option">
+        <input type="radio" name="difficulty" value="hard">
+        <span><strong data-i18n="newGame.hard">むずかしい</strong><br><small data-i18n="newGame.hardDesc">援助：なし</small></span>
+      </label>
+    </fieldset>
+    <button id="btn-start-game" type="button" class="action-btn" data-i18n="newGame.start">開始</button>
+  </dialog>
 
   <dialog id="settings-dialog" class="settings-dialog">
     <div class="dialog-header">
@@ -98,17 +127,13 @@
       <h2 data-i18n="inventory.title">在庫・地球市場</h2>
       <button id="btn-close-inventory" type="button" class="dialog-close" data-i18n-aria="inventory.close" aria-label="閉じる">×</button>
     </div>
-    <p class="dialog-intro" data-i18n="inventory.intro">建設には在庫の材料が必要です。クレジットで地球から購入できます。</p>
+    <p class="dialog-intro" data-i18n="inventory.intro">建設には在庫の材料が必要です。クレジットで地球市場から購入できます（定期援助とは別）。</p>
     <div id="inventory-list" class="inventory-list"></div>
-    <div class="inventory-locked-section">
-      <h3 data-i18n="inventory.futureMaterials">今後の材料</h3>
-      <div id="inventory-locked"></div>
-    </div>
   </dialog>
 
   <div id="gameover-overlay" class="gameover-overlay" hidden>
     <div class="gameover-card">
-      <h2 data-i18n="gameover.title">大陸が沈没しました</h2>
+      <h2 data-i18n="gameover.title">浮遊大陸が沈没しました</h2>
       <p data-i18n="gameover.body">浮力が持たず、浮遊大陸は金星の硫酸雲の下へ消えていきました。</p>
       <p class="gameover-hope" data-i18n="gameover.hope">まだ終わりではありません — 設計を見直して、もう一度挑戦しましょう。</p>
       <p class="gameover-stats"><span data-i18n="gameover.survivalTicks">生存ティック:</span> <span id="gameover-tick">0</span></p>

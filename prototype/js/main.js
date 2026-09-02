@@ -41,17 +41,36 @@ import {
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
-let state = createInitialState();
+let state = null;
+let gameStarted = false;
 let hoverHex = null;
 let toastTimer = null;
 let particles = [];
+let tickInterval = null;
 
 const OFFSET = { x: canvas.width / 2, y: canvas.height / 2 };
 
+const newgameDialog = document.getElementById('newgame-dialog');
 const inventoryDialog = document.getElementById('inventory-dialog');
 const settingsDialog = document.getElementById('settings-dialog');
 const gameoverOverlay = document.getElementById('gameover-overlay');
 const sinkWarning = document.getElementById('sink-warning');
+
+function getSelectedDifficulty() {
+  const input = document.querySelector('input[name="difficulty"]:checked');
+  return /** @type {'easy'|'normal'|'hard'} */ (input?.value ?? 'normal');
+}
+
+function startGame(difficulty = 'normal') {
+  state = createInitialState(difficulty);
+  gameStarted = true;
+  newgameDialog.close();
+  buildButtons();
+  draw();
+  if (!tickInterval) {
+    tickInterval = setInterval(runTick, 1000);
+  }
+}
 
 function syncLocaleRadios() {
   const loc = getLocale();
@@ -63,7 +82,7 @@ function syncLocaleRadios() {
 function applyLocale() {
   applyStaticI18n();
   syncLocaleRadios();
-  buildButtons();
+  if (gameStarted) buildButtons();
   if (inventoryDialog.open) renderInventoryList();
   draw();
 }
@@ -91,6 +110,7 @@ function spawnParticles(q, r, color) {
 }
 
 function updateSinkWarning() {
+  if (!state) return;
   const cd = state.sinkCountdown ?? 0;
   if (state.gameOver || cd === 0) {
     sinkWarning.hidden = true;
@@ -108,6 +128,7 @@ function updateSinkWarning() {
 }
 
 function updateGameOverOverlay() {
+  if (!state) return;
   if (state.gameOver) {
     gameoverOverlay.hidden = false;
     document.getElementById('gameover-tick').textContent = state.tick;
@@ -117,6 +138,7 @@ function updateGameOverOverlay() {
 }
 
 function renderInventoryList() {
+  if (!state) return;
   const list = document.getElementById('inventory-list');
   list.innerHTML = '';
 
@@ -169,17 +191,6 @@ function renderInventoryList() {
     row.append(info, holding, actions);
     list.appendChild(row);
   }
-
-  // Locked stubs
-  const lockedSection = document.getElementById('inventory-locked');
-  lockedSection.innerHTML = '';
-  for (const id of ['carbon']) {
-    const mat = MATERIALS[id];
-    const item = document.createElement('div');
-    item.className = 'inventory-locked-item';
-    item.innerHTML = `<span>${getMaterialName(id)}</span><span class="locked-badge">${t('inventory.comingSoon')}</span>`;
-    lockedSection.appendChild(item);
-  }
 }
 
 function openInventory() {
@@ -188,6 +199,7 @@ function openInventory() {
 }
 
 function updateUI() {
+  if (!state) return;
   const stats = computeStats(state);
   const set = (id, text, cls = '') => {
     const el = document.getElementById(id);
@@ -204,9 +216,15 @@ function updateUI() {
   set('stat-wind', stats.windLoad.toFixed(0), stats.windLoad > 12 ? 'warning' : '');
   set('stat-corrosion', (stats.corrosion / state.modules.size).toFixed(1) + '%',
     stats.corrosion / state.modules.size > 30 ? 'warning' : '');
+  set('stat-difficulty', t(`difficulty.${state.difficulty}`));
 
+  set('res-co2', state.inventory.co2.toFixed(1));
+  set('res-carbon', state.inventory.carbon.toFixed(1));
+  set('res-n2', state.inventory.n2.toFixed(1));
   set('res-h2so4', state.inventory.h2so4.toFixed(1));
   set('res-h2', state.inventory.h2.toFixed(1));
+  set('res-o2', state.inventory.o2.toFixed(1));
+  set('res-h2o', state.inventory.h2o.toFixed(1));
   set('res-sulfur', state.inventory.sulfur.toFixed(1));
   set('res-iron', state.inventory.iron.toFixed(1));
   set('res-credits', state.inventory.credits.toFixed(0));
@@ -235,9 +253,10 @@ function updateUI() {
 }
 
 function buildButtons() {
+  if (!state) return;
   const container = document.getElementById('build-buttons');
   container.innerHTML = '';
-  for (const type of ['isru', 'solar', 'h2cell']) {
+  for (const type of ['intake', 'isru', 'solar', 'h2cell']) {
     const def = MODULE_TYPES[type];
     const btn = document.createElement('button');
     btn.className = 'build-btn' + (state.selectedBuild === type ? ' active' : '');
@@ -262,17 +281,20 @@ function draw() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.globalAlpha = 0.08;
+  const tick = state?.tick ?? 0;
   for (let i = 0; i < 5; i++) {
     ctx.fillStyle = '#f0883e';
     ctx.beginPath();
     ctx.ellipse(
-      100 + i * 130 + Math.sin(state.tick * 0.05 + i) * 20,
+      100 + i * 130 + Math.sin(tick * 0.05 + i) * 20,
       80 + i * 90,
       120, 30, 0, 0, Math.PI * 2
     );
     ctx.fill();
   }
   ctx.globalAlpha = 1;
+
+  if (!state) return;
 
   const placeable = state.gameOver ? new Set() : getPlaceableHexes(state);
   const visible = new Set([...state.modules.keys(), ...placeable]);
@@ -308,7 +330,7 @@ function draw() {
       ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const abbrev = { core: 'CORE', isru: 'ISRU', solar: 'SOL', h2cell: 'H₂' };
+      const abbrev = { core: 'CORE', intake: 'INT', isru: 'ISRU', solar: 'SOL', h2cell: 'H₂' };
       ctx.fillText(abbrev[mod.type] || mod.type, cx, cy);
     } else if (isPlaceable) {
       const fill = isHover ? '#39d4d433' : '#ffffff08';
@@ -350,6 +372,19 @@ function canvasCoords(e) {
   };
 }
 
+function runTick() {
+  if (!gameStarted || !state || state.gameOver) return;
+  state = gameTick(state);
+  if (state.lastEvents?.length) {
+    const last = state.lastEvents[state.lastEvents.length - 1];
+    showToast(last);
+  }
+  if (state.gameOver) {
+    buildButtons();
+  }
+  draw();
+}
+
 canvas.addEventListener('mousemove', (e) => {
   const { x, y } = canvasCoords(e);
   hoverHex = pixelToHex(x, y);
@@ -362,7 +397,7 @@ canvas.addEventListener('mouseleave', () => {
 });
 
 canvas.addEventListener('click', (e) => {
-  if (state.gameOver) return;
+  if (!gameStarted || !state || state.gameOver) return;
 
   const { x, y } = canvasCoords(e);
   const { q, r } = pixelToHex(x, y);
@@ -386,7 +421,7 @@ canvas.addEventListener('click', (e) => {
 });
 
 document.getElementById('btn-extend-h2').addEventListener('click', () => {
-  if (!state.selectedHex || state.gameOver) return;
+  if (!state || !state.selectedHex || state.gameOver) return;
   const result = extendH2(state, state.selectedHex);
   if (result.ok) {
     state = result.state;
@@ -400,6 +435,7 @@ document.getElementById('btn-extend-h2').addEventListener('click', () => {
 });
 
 document.getElementById('btn-trade').addEventListener('click', () => {
+  if (!state) return;
   const result = tradeWithEarth(state);
   if (result.ok) {
     state = result.state;
@@ -446,31 +482,23 @@ inventoryDialog.addEventListener('click', (e) => {
   if (!inDialog) inventoryDialog.close();
 });
 
-document.getElementById('btn-restart').addEventListener('click', () => {
-  state = restartGame();
-  particles = [];
-  buildButtons();
-  inventoryDialog.close();
-  draw();
-  showToast(t('msg.restarted'));
+document.getElementById('btn-start-game').addEventListener('click', () => {
+  startGame(getSelectedDifficulty());
 });
 
-setInterval(() => {
-  if (!state.gameOver) {
-    state = gameTick(state);
-    if (state.lastEvents?.length) {
-      const last = state.lastEvents[state.lastEvents.length - 1];
-      showToast(last);
-    }
-    if (state.gameOver) {
-      buildButtons();
-    }
-  }
+document.getElementById('btn-restart').addEventListener('click', () => {
+  gameStarted = false;
+  state = null;
+  particles = [];
+  inventoryDialog.close();
+  gameoverOverlay.hidden = true;
+  document.querySelector('input[name="difficulty"][value="normal"]').checked = true;
+  newgameDialog.showModal();
   draw();
-}, 1000);
+});
 
 onLocaleChange(() => applyLocale());
 
 applyLocale();
-buildButtons();
+newgameDialog.showModal();
 draw();
