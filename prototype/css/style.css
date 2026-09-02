@@ -97,8 +97,9 @@ body {
 
 #game-canvas {
   display: block;
-  width: 100%;
-  height: auto;
+  width: 720px;
+  height: 560px;
+  max-width: 100%;
   cursor: crosshair;
 }
 

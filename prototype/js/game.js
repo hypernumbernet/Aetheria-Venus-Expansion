@@ -77,7 +77,7 @@ export const MODULE_TYPES = {
     powerGen: 0,
     powerUse: 1,
     intake: 0,
-    cost: { iron: 2, h2: 3, carbon: 1 },
+    cost: { iron: 2, h2: 1, carbon: 1 },
     desc: 'Stores hydrogen lift gas.',
   },
 };
@@ -104,9 +104,9 @@ const TRADE_CREDITS_GAIN = 5;
 /** Carried inventory mass coefficient (§7.1): 1 t cargo ≈ 0.05 t structural mass. */
 export const INVENTORY_MASS_PER_TON = 0.05;
 
-/** Cargo that adds carried mass. Raw atmosphere buffers (CO₂, N₂) and credits are excluded. */
+/** Cargo that adds carried mass. Raw atmosphere buffers (CO₂, N₂), structural feedstock (C), and credits are excluded. */
 export const INVENTORY_CARGO_MASS_IDS = [
-  'iron', 'h2o', 'sulfur', 'carbon', 'h2', 'o2', 'h2so4',
+  'iron', 'h2o', 'sulfur', 'h2', 'o2', 'h2so4',
 ];
 
 const COATING_S_COST = 1;
@@ -116,6 +116,19 @@ const COATING_MAINTENANCE_S_PER_TICK = 0.05;
 const CORROSION_RISE = 0.3;
 const CORROSION_RISE_COATED = 0.1;
 const CORROSION_RISE_MAINTAINED = 0.15;
+
+/** §4.2 / §7.1 — CORE life-support draws O₂ each tick so electrolysis byproduct does not pile into cargo mass. */
+const O2_LIFE_SUPPORT_SINK = 0.7;
+/** §7.3 — spend C to lighten a module (mass↓, lift↑). */
+export const C_LIGHTEN_COST = 1;
+const C_LIGHTEN_MASS_REDUCE = 2;
+const C_LIGHTEN_BUOYANCY = 2;
+const C_LIGHTEN_MAX = 3;
+
+/** §7.1 / §9 — wind load above this causes real stat penalties per tick. */
+export const WIND_DAMAGE_THRESHOLD = 12;
+const WIND_EXTRA_CORROSION = 0.4;
+const WIND_POWER_PENALTY = 3;
 
 export const SINK_COUNTDOWN_MAX = 10;
 export const SINK_WARNING_AT = 5;
@@ -138,6 +151,7 @@ export function createInitialState(difficulty = 'normal') {
     h2Layers: 1,
     corrosion: 0,
     coatedTicks: 0,
+    carbonLighten: 0,
   });
   const inventory = createEmptyInventory();
   inventory.h2so4 = 1;
@@ -269,7 +283,7 @@ export function placeModule(state, q, r) {
   }
 
   const modules = new Map(state.modules);
-  modules.set(key, { type, h2Layers: 1, corrosion: 0, coatedTicks: 0 });
+  modules.set(key, { type, h2Layers: 1, corrosion: 0, coatedTicks: 0, carbonLighten: 0 });
   return {
     ok: true,
     state: {
@@ -331,6 +345,32 @@ export function applySulfurCoating(state, key) {
   };
 }
 
+export function applyCarbonLightening(state, key) {
+  if (state.gameOver) return { ok: false, reason: t('msg.gameOver') };
+
+  const mod = state.modules.get(key);
+  if (!mod) return { ok: false, reason: t('msg.noModuleSelected') };
+  const level = mod.carbonLighten ?? 0;
+  if (level >= C_LIGHTEN_MAX) {
+    return { ok: false, reason: t('msg.carbonLightenMax') };
+  }
+  if ((state.inventory.carbon ?? 0) < C_LIGHTEN_COST) {
+    return { ok: false, reason: t('msg.needCarbonLighten', { amount: C_LIGHTEN_COST }) };
+  }
+
+  const modules = new Map(state.modules);
+  modules.set(key, { ...mod, carbonLighten: level + 1 });
+  const inventory = {
+    ...state.inventory,
+    carbon: state.inventory.carbon - C_LIGHTEN_COST,
+  };
+  return {
+    ok: true,
+    state: { ...state, modules, inventory },
+    message: t('msg.carbonLightened'),
+  };
+}
+
 export function tradeWithEarth(state) {
   if (state.gameOver) return { ok: false, reason: t('msg.gameOver') };
 
@@ -369,8 +409,10 @@ export function computeStats(state) {
 
   for (const mod of state.modules.values()) {
     const def = MODULE_TYPES[mod.type];
-    moduleMass += def.mass;
-    buoyancy += def.baseBuoyancy + (mod.h2Layers - 1) * H2_EXTEND_BUOYANCY;
+    const lighten = mod.carbonLighten ?? 0;
+    moduleMass += def.mass - lighten * C_LIGHTEN_MASS_REDUCE;
+    buoyancy += def.baseBuoyancy + (mod.h2Layers - 1) * H2_EXTEND_BUOYANCY
+      + lighten * C_LIGHTEN_BUOYANCY;
     powerGen += def.powerGen;
     powerUse += def.powerUse;
     intakeUnits += def.intake ?? 0;
@@ -385,7 +427,8 @@ export function computeStats(state) {
   const inventoryMass = computeInventoryMass(state.inventory);
   const mass = moduleMass + inventoryMass;
   const netLift = buoyancy - mass;
-  const powerNet = powerGen - powerUse;
+  const windPowerPenalty = windLoad > WIND_DAMAGE_THRESHOLD ? WIND_POWER_PENALTY : 0;
+  const powerNet = powerGen - powerUse - windPowerPenalty;
 
   return {
     mass,
@@ -396,6 +439,7 @@ export function computeStats(state) {
     powerGen,
     powerUse,
     powerNet,
+    windPowerPenalty,
     intakeUnits,
     windLoad,
     corrosion,
@@ -455,6 +499,22 @@ function processIsru(inventory, isruCount, powerNet) {
   return { inventory: inv, events, powerDeficit: false };
 }
 
+function hasCoreModule(modules) {
+  for (const mod of modules.values()) {
+    if (mod.type === 'core') return true;
+  }
+  return false;
+}
+
+/** Consume O₂ for CORE life support (§4.2 byproduct sink while crewed). */
+function applyO2LifeSupport(inventory, modules) {
+  if (!hasCoreModule(modules)) return inventory;
+  const o2 = inventory.o2 ?? 0;
+  if (o2 <= 0) return inventory;
+  const consumed = Math.min(o2, O2_LIFE_SUPPORT_SINK);
+  return { ...inventory, o2: o2 - consumed };
+}
+
 function applyEarthAid(state, inventory) {
   const nextTick = state.tick + 1;
   if (nextTick % EARTH_AID_INTERVAL !== 0) return { inventory, event: null };
@@ -492,12 +552,21 @@ export function gameTick(state) {
   inventory = aid.inventory;
   if (aid.event) events.push(aid.event);
 
-  // ISRU processing
+  // ISRU processing (wind load may reduce effective power — §7.1 / §9)
   const isruResult = processIsru(inventory, stats.isruCount, stats.powerNet);
   inventory = isruResult.inventory;
   events.push(...isruResult.events);
   if (isruResult.powerDeficit) {
     events.push(t('msg.powerDeficit'));
+  }
+
+  // O₂ life-support sink while CORE is operational (§4.2 / §7.1)
+  inventory = applyO2LifeSupport(inventory, modules);
+
+  // Wind-load corrosion stress (§7.1 / §9)
+  const windCorrosionExtra = stats.windLoad > WIND_DAMAGE_THRESHOLD ? WIND_EXTRA_CORROSION : 0;
+  if (windCorrosionExtra > 0 && stats.windLoad > WIND_DAMAGE_THRESHOLD) {
+    events.push(t('msg.windDamage'));
   }
 
   // Corrosion tick (§9 — S coating slows rise)
@@ -507,7 +576,7 @@ export function gameTick(state) {
     && (inventory.sulfur ?? 0) > 1;
 
   for (const [key, mod] of modules) {
-    let rise = CORROSION_RISE;
+    let rise = CORROSION_RISE + windCorrosionExtra;
     let coatedTicks = mod.coatedTicks ?? 0;
 
     if (coatedTicks > 0) {
