@@ -240,7 +240,7 @@ All interface elements adopt a clean, holographic aesthetic with subtle scan-lin
 
 | Topic | GDD (this file) | ゲームルール.md (authoritative for sprint) |
 |-------|-----------------|---------------------------------------------|
-| One hex on the map | Historically described as a "40m hexagonal prism unit" | A **small module** (~100 m³ class room-scale **ユニット**). Never called a continent. |
+| One hex on the map | Historically described as a "40m hexagonal prism unit" | A **small module** with **~100 m² floor area** (regular hex ≈ 6.2 m side). Never called a continent. |
 | Floating continent | Growth of linked modules | The **connected assembly** of many units only (**浮遊大陸**). |
 | Atmospheric harvest | Various chains | **CO₂-first** mix from real Venus composition; **CO₂** and **C** as first-class elements; **CORE** passive intake. |
 | Iron | Surface / trade | Not atmospheric; **required to build**; Earth market is a hopeful partner (no dwindling support). |
