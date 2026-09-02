@@ -10,6 +10,7 @@ import {
   MODULE_TYPES,
   placeModule,
   extendH2,
+  applySulfurCoating,
   tradeWithEarth,
   buyMaterial,
   computeStats,
@@ -19,6 +20,7 @@ import {
   formatBuildCost,
   getModuleName,
   H2_EXTEND_COST,
+  COATING_S_COST,
   SINK_COUNTDOWN_MAX,
   SINK_WARNING_AT,
 } from './game.js';
@@ -194,6 +196,7 @@ function renderInventoryList() {
 }
 
 function openInventory() {
+  if (!state || state.gameOver) return;
   renderInventoryList();
   inventoryDialog.showModal();
 }
@@ -234,6 +237,7 @@ function updateUI() {
   const sel = state.selectedHex;
   const info = document.getElementById('selected-info');
   const extendBtn = document.getElementById('btn-extend-h2');
+  const coatingBtn = document.getElementById('btn-apply-coating');
   if (sel && state.modules.has(sel)) {
     const mod = state.modules.get(sel);
     info.textContent = t('selected', {
@@ -243,13 +247,22 @@ function updateUI() {
       corrosion: mod.corrosion.toFixed(0),
     });
     extendBtn.disabled = state.gameOver || state.inventory.h2 < H2_EXTEND_COST || mod.h2Layers >= 4;
+    coatingBtn.disabled = state.gameOver
+      || (state.inventory.sulfur ?? 0) < COATING_S_COST
+      || mod.corrosion <= 0;
   } else {
     info.textContent = t('panel.selectedNone');
     extendBtn.disabled = true;
+    coatingBtn.disabled = true;
   }
 
   updateSinkWarning();
   updateGameOverOverlay();
+
+  const inventoryBtn = document.getElementById('btn-inventory');
+  if (inventoryBtn) {
+    inventoryBtn.disabled = state.gameOver;
+  }
 }
 
 function buildButtons() {
@@ -372,15 +385,28 @@ function canvasCoords(e) {
   };
 }
 
+function isTickPaused() {
+  return newgameDialog.open
+    || inventoryDialog.open
+    || settingsDialog.open
+    || !gameoverOverlay.hidden;
+}
+
+function closeBlockingDialogs() {
+  if (inventoryDialog.open) inventoryDialog.close();
+  if (settingsDialog.open) settingsDialog.close();
+}
+
 function runTick() {
-  if (!gameStarted || !state || state.gameOver) return;
+  if (!gameStarted || !state || state.gameOver || isTickPaused()) return;
   state = gameTick(state);
+  if (state.gameOver) {
+    closeBlockingDialogs();
+    buildButtons();
+  }
   if (state.lastEvents?.length) {
     const last = state.lastEvents[state.lastEvents.length - 1];
     showToast(last);
-  }
-  if (state.gameOver) {
-    buildButtons();
   }
   draw();
 }
@@ -434,6 +460,20 @@ document.getElementById('btn-extend-h2').addEventListener('click', () => {
   draw();
 });
 
+document.getElementById('btn-apply-coating').addEventListener('click', () => {
+  if (!state || !state.selectedHex || state.gameOver) return;
+  const result = applySulfurCoating(state, state.selectedHex);
+  if (result.ok) {
+    state = result.state;
+    const [q, r] = state.selectedHex.split(',').map(Number);
+    spawnParticles(q, r, '#d29922');
+    showToast(result.message);
+  } else {
+    showToast(result.reason);
+  }
+  draw();
+});
+
 document.getElementById('btn-trade').addEventListener('click', () => {
   if (!state) return;
   const result = tradeWithEarth(state);
@@ -448,6 +488,7 @@ document.getElementById('btn-trade').addEventListener('click', () => {
 });
 
 document.getElementById('btn-settings').addEventListener('click', () => {
+  if (state?.gameOver) return;
   syncLocaleRadios();
   settingsDialog.showModal();
 });

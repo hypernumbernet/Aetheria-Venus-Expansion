@@ -33,13 +33,18 @@ Then open **http://localhost:8080**.
 
 ## How to Play (Prototype)
 
-1. **Open inventory** — Click **在庫・地球市場** to view holdings and buy materials from Earth with credits.
-2. **Buy before you build** — Starting stock is tight. Every module requires **iron (Fe)** plus other materials; purchase iron and supplies from the Earth market before placing modules.
-3. **Build modules** — Select ISRU Refinery, Solar Array, or H₂ Buoyancy Cell, then click a `+` hex adjacent to your continent. Materials (including iron) are deducted from inventory; insufficient stock blocks placement.
-4. **ISRU loop** — Each second, refineries harvest H₂SO₄ from Venusian clouds and (when power is positive) electrolyze it into H₂ and sulfur.
-5. **Extend H₂** — Select a module and click **Extend H₂ Layer** to increase buoyancy (and wind load).
-6. **Trade with Earth** — Sell sulfur for Earth credits to fund purchases.
-7. **Watch buoyancy** — If net lift stays negative for ~10 ticks, the continent sinks (game over). Restart and try again.
+1. **Choose difficulty** — On new game, pick **Easy / Normal / Hard**. This sets **Earth periodic aid** (free H₂O + Fe every 120 ticks). Aid does not decay and is separate from the paid Earth market.
+2. **Open inventory** — Click **在庫・地球市場** to view holdings and buy **Fe** and **H₂O** with credits.
+3. **CORE intake** — Your core (and any **Atmospheric Intake** modules) continuously harvests Venus air: mostly **CO₂**, some **N₂**, trace **H₂SO₄** and **H₂O**.
+4. **Build modules** — Select Intake, ISRU Refinery, Solar Array, or H₂ Buoyancy Cell, then click a `+` hex adjacent to your continent. Every build costs **Fe** from inventory; intake and H₂ cells also need **C** (from ISRU). Your first ISRU only needs **Fe + S**.
+5. **ISRU loop** — With positive power, each ISRU refinery per tick tries, in order:
+   - **Acid split**: H₂SO₄ → H₂ + S + H₂O
+   - **Bosch**: CO₂ + H₂ → C + H₂O
+   - **CO₂ electrolysis**: CO₂ → C + O₂
+6. **Buoyancy** — H₂ Buoyancy Cells add lift and **base wind load**; extending H₂ layers adds more buoyancy and more wind load. **Carried inventory adds mass** (hoarding makes sinking easier).
+7. **Corrosion** — Acidic clouds raise corrosion. Select a module and apply **Sulfur Coating** (1 t S) to reduce corrosion and slow further rise; trace S upkeep can slow corrosion fleet-wide.
+8. **Trade with Earth** — Sell sulfur for credits to fund market purchases.
+9. **Watch net lift** — If net lift stays negative for ~10 ticks, the continent sinks (game over). Restart and try again.
 
 ## GDD Highlights
 
