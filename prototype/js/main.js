@@ -1,5 +1,5 @@
 import {
-  HEX_SIZE,
+  HEX_DRAW_RADIUS,
   hexKey,
   hexToPixel,
   pixelToHex,
@@ -262,15 +262,15 @@ function draw() {
 
     if (mod) {
       const def = MODULE_TYPES[mod.type];
-      drawHex(ctx, cx, cy, HEX_SIZE - 2, def.color + '55', def.color, isSelected ? 3 : 1.5);
+      drawHex(ctx, cx, cy, HEX_DRAW_RADIUS, def.color + '55', def.color, isSelected ? 2 : 1);
 
       for (let layer = 1; layer < mod.h2Layers; layer++) {
-        drawHex(ctx, cx, cy - layer * 4, HEX_SIZE - 6 - layer * 2, null, '#a371f788', 1);
+        drawHex(ctx, cx, cy - layer * 4, HEX_DRAW_RADIUS - 4 - layer * 2, null, '#a371f788', 1);
       }
 
       if (mod.corrosion > 20) {
         ctx.globalAlpha = mod.corrosion / 200;
-        drawHex(ctx, cx, cy, HEX_SIZE - 4, '#f8514966', null);
+        drawHex(ctx, cx, cy, HEX_DRAW_RADIUS, '#f8514966', null);
         ctx.globalAlpha = 1;
       }
 
@@ -283,7 +283,7 @@ function draw() {
     } else if (isPlaceable) {
       const fill = isHover ? '#39d4d433' : '#ffffff08';
       const stroke = isHover ? '#39d4d4' : '#ffffff22';
-      drawHex(ctx, cx, cy, HEX_SIZE - 4, fill, stroke, isHover ? 2 : 1);
+      drawHex(ctx, cx, cy, HEX_DRAW_RADIUS, fill, stroke, 1);
       if (isHover) {
         ctx.fillStyle = '#39d4d4';
         ctx.font = '18px sans-serif';
