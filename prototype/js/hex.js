@@ -1,6 +1,9 @@
-/** Axial hex coordinate utilities (pointy-top). */
+/** Axial hex coordinate utilities (flat-top). */
 
 export const HEX_SIZE = 36;
+
+/** Circumradius used for drawing — matches hexToPixel layout. */
+export const HEX_DRAW_RADIUS = HEX_SIZE;
 
 const SQRT3 = Math.sqrt(3);
 
@@ -54,7 +57,7 @@ export function getNeighbors(q, r) {
 export function drawHex(ctx, cx, cy, size, fill, stroke, lineWidth = 2) {
   ctx.beginPath();
   for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 180) * (60 * i - 30);
+    const angle = (Math.PI / 3) * i;
     const x = cx + size * Math.cos(angle);
     const y = cy + size * Math.sin(angle);
     if (i === 0) ctx.moveTo(x, y);
@@ -75,5 +78,7 @@ export function drawHex(ctx, cx, cy, size, fill, stroke, lineWidth = 2) {
 export function pointInHex(px, py, cx, cy, size) {
   const dx = Math.abs(px - cx);
   const dy = Math.abs(py - cy);
-  return dx <= size * 0.866 && dy <= size && (size * 0.866 * size - size * 0.866 * dy - size * 0.5 * dx) >= 0;
+  const halfH = (SQRT3 / 2) * size;
+  if (dx > size || dy > halfH) return false;
+  return halfH * size - halfH * dx - (size / 2) * dy >= 0;
 }

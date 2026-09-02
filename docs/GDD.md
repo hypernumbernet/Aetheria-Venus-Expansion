@@ -233,3 +233,12 @@ Major accomplishments—new continent tier, successful self-sufficiency mileston
 
 ### UI and Feedback Polish
 All interface elements adopt a clean, holographic aesthetic with subtle scan-line and lens-flare touches that feel both futuristic and slightly magical. Resource flow diagrams pulse gently when efficiency improves. Damage or stress warnings appear as elegant amber glyphs rather than harsh red alerts. These small touches maintain readability while preserving the overall tone of hopeful, almost fantastical human ingenuity against the vast Venusian backdrop.
+
+## 9. Prototype Sprint Notes
+
+The browser prototype (`prototype/`) validates core tension loops before full production:
+
+- **Construction costs inventory** — Placing ISRU, solar, or H₂ modules deducts catalog materials (H₂SO₄, H₂, sulfur, iron). Iron is required for every buildable module and is purchased from the Earth market in this sprint. Players cannot build without sufficient holdings; starting stock is intentionally tight.
+- **Earth as a market** — Credits purchase materials (including iron) from Earth; sulfur exports earn credits. Earth is a cooperative trading partner, not a dwindling lifeline.
+- **Game over: sinking** — When net buoyancy (lift − mass) stays negative for a short countdown (~10 ticks), the floating continent sinks. Tone is hopeful retry, not abandonment.
+- **Next sprint** — Carbon material loop (stubbed in catalog as locked); surface iron mining as an alternative to Earth purchase.

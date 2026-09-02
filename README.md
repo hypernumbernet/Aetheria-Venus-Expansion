@@ -32,11 +32,13 @@ Then open **http://localhost:8080**.
 
 ## How to Play (Prototype)
 
-1. **Build modules** — Select ISRU Refinery, Solar Array, or H₂ Buoyancy Cell, then click a `+` hex adjacent to your continent.
-2. **ISRU loop** — Each second, refineries harvest H₂SO₄ from Venusian clouds and (when power is positive) electrolyze it into H₂ and sulfur.
-3. **Extend H₂** — Select a module and click **Extend H₂ Layer** to increase buoyancy (and wind load).
-4. **Trade with Earth** — Exchange sulfur for Earth research credits; Earth remains a cooperative partner.
-5. Watch the **dashboard** — buoyancy, mass, net lift, power, and resources update every tick.
+1. **Open inventory** — Click **在庫・地球市場** to view holdings and buy materials from Earth with credits.
+2. **Buy before you build** — Starting stock is tight. Every module requires **iron (Fe)** plus other materials; purchase iron and supplies from the Earth market before placing modules.
+3. **Build modules** — Select ISRU Refinery, Solar Array, or H₂ Buoyancy Cell, then click a `+` hex adjacent to your continent. Materials (including iron) are deducted from inventory; insufficient stock blocks placement.
+4. **ISRU loop** — Each second, refineries harvest H₂SO₄ from Venusian clouds and (when power is positive) electrolyze it into H₂ and sulfur.
+5. **Extend H₂** — Select a module and click **Extend H₂ Layer** to increase buoyancy (and wind load).
+6. **Trade with Earth** — Sell sulfur for Earth credits to fund purchases.
+7. **Watch buoyancy** — If net lift stays negative for ~10 ticks, the continent sinks (game over). Restart and try again.
 
 ## GDD Highlights
 

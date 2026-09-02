@@ -1,10 +1,9 @@
 import {
-  HEX_SIZE,
+  HEX_DRAW_RADIUS,
   hexKey,
   hexToPixel,
   pixelToHex,
   drawHex,
-  getNeighbors,
 } from './hex.js';
 import {
   createInitialState,
@@ -12,11 +11,32 @@ import {
   placeModule,
   extendH2,
   tradeWithEarth,
+  buyMaterial,
   computeStats,
   gameTick,
   getPlaceableHexes,
+  restartGame,
+  formatBuildCost,
+  getModuleName,
   H2_EXTEND_COST,
+  SINK_COUNTDOWN_MAX,
+  SINK_WARNING_AT,
 } from './game.js';
+import {
+  MATERIALS,
+  INVENTORY_IDS,
+  getMaterialName,
+  getMaterialDesc,
+  getMaterialObtainLabel,
+  formatAmount,
+} from './materials.js';
+import {
+  getLocale,
+  setLocale,
+  onLocaleChange,
+  t,
+  applyStaticI18n,
+} from './i18n.js';
 
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
@@ -27,6 +47,26 @@ let toastTimer = null;
 let particles = [];
 
 const OFFSET = { x: canvas.width / 2, y: canvas.height / 2 };
+
+const inventoryDialog = document.getElementById('inventory-dialog');
+const settingsDialog = document.getElementById('settings-dialog');
+const gameoverOverlay = document.getElementById('gameover-overlay');
+const sinkWarning = document.getElementById('sink-warning');
+
+function syncLocaleRadios() {
+  const loc = getLocale();
+  for (const input of document.querySelectorAll('input[name="locale"]')) {
+    input.checked = input.value === loc;
+  }
+}
+
+function applyLocale() {
+  applyStaticI18n();
+  syncLocaleRadios();
+  buildButtons();
+  if (inventoryDialog.open) renderInventoryList();
+  draw();
+}
 
 function showToast(msg) {
   const el = document.getElementById('toast');
@@ -50,6 +90,103 @@ function spawnParticles(q, r, color) {
   }
 }
 
+function updateSinkWarning() {
+  const cd = state.sinkCountdown ?? 0;
+  if (state.gameOver || cd === 0) {
+    sinkWarning.hidden = true;
+    return;
+  }
+  sinkWarning.hidden = false;
+  const remaining = SINK_COUNTDOWN_MAX - cd;
+  if (cd >= SINK_WARNING_AT) {
+    sinkWarning.textContent = t('sink.warning', { remaining });
+    sinkWarning.className = 'sink-warning danger';
+  } else {
+    sinkWarning.textContent = t('sink.caution', { remaining });
+    sinkWarning.className = 'sink-warning';
+  }
+}
+
+function updateGameOverOverlay() {
+  if (state.gameOver) {
+    gameoverOverlay.hidden = false;
+    document.getElementById('gameover-tick').textContent = state.tick;
+  } else {
+    gameoverOverlay.hidden = true;
+  }
+}
+
+function renderInventoryList() {
+  const list = document.getElementById('inventory-list');
+  list.innerHTML = '';
+
+  for (const id of INVENTORY_IDS) {
+    const mat = MATERIALS[id];
+    const amount = state.inventory[id] ?? 0;
+    const row = document.createElement('div');
+    row.className = 'inventory-row';
+
+    const info = document.createElement('div');
+    info.className = 'inventory-info';
+    info.innerHTML = `
+      <strong>${getMaterialName(id)}</strong>
+      <span class="inventory-desc">${getMaterialDesc(id)}</span>
+      <span class="inventory-obtain">${getMaterialObtainLabel(id)}</span>
+    `;
+
+    const holding = document.createElement('div');
+    holding.className = 'inventory-holding';
+    holding.textContent = formatAmount(id, amount);
+
+    const actions = document.createElement('div');
+    actions.className = 'inventory-actions';
+
+    if (mat.purchasable && !mat.locked) {
+      const buyBtn = document.createElement('button');
+      buyBtn.type = 'button';
+      buyBtn.className = 'buy-btn';
+      buyBtn.textContent = t('inventory.buy', { price: mat.buyPrice });
+      buyBtn.disabled = state.gameOver || (state.inventory.credits ?? 0) < mat.buyPrice;
+      buyBtn.addEventListener('click', () => {
+        const result = buyMaterial(state, id, 1);
+        if (result.ok) {
+          state = result.state;
+          showToast(result.message);
+          renderInventoryList();
+          draw();
+        } else {
+          showToast(result.reason);
+        }
+      });
+      actions.appendChild(buyBtn);
+    } else if (id === 'credits') {
+      const hint = document.createElement('span');
+      hint.className = 'inventory-hint';
+      hint.textContent = t('inventory.creditsHint');
+      actions.appendChild(hint);
+    }
+
+    row.append(info, holding, actions);
+    list.appendChild(row);
+  }
+
+  // Locked stubs
+  const lockedSection = document.getElementById('inventory-locked');
+  lockedSection.innerHTML = '';
+  for (const id of ['carbon']) {
+    const mat = MATERIALS[id];
+    const item = document.createElement('div');
+    item.className = 'inventory-locked-item';
+    item.innerHTML = `<span>${getMaterialName(id)}</span><span class="locked-badge">${t('inventory.comingSoon')}</span>`;
+    lockedSection.appendChild(item);
+  }
+}
+
+function openInventory() {
+  renderInventoryList();
+  inventoryDialog.showModal();
+}
+
 function updateUI() {
   const stats = computeStats(state);
   const set = (id, text, cls = '') => {
@@ -68,25 +205,33 @@ function updateUI() {
   set('stat-corrosion', (stats.corrosion / state.modules.size).toFixed(1) + '%',
     stats.corrosion / state.modules.size > 30 ? 'warning' : '');
 
-  set('res-h2so4', state.resources.h2so4.toFixed(1));
-  set('res-h2', state.resources.h2.toFixed(1));
-  set('res-sulfur', state.resources.sulfur.toFixed(1));
-  set('res-credits', state.resources.credits.toFixed(0));
+  set('res-h2so4', state.inventory.h2so4.toFixed(1));
+  set('res-h2', state.inventory.h2.toFixed(1));
+  set('res-sulfur', state.inventory.sulfur.toFixed(1));
+  set('res-iron', state.inventory.iron.toFixed(1));
+  set('res-credits', state.inventory.credits.toFixed(0));
 
-  document.getElementById('tick-counter').textContent = `Tick ${state.tick}`;
+  document.getElementById('tick-counter').textContent = t('tick', { n: state.tick });
 
   const sel = state.selectedHex;
   const info = document.getElementById('selected-info');
   const extendBtn = document.getElementById('btn-extend-h2');
   if (sel && state.modules.has(sel)) {
     const mod = state.modules.get(sel);
-    const def = MODULE_TYPES[mod.type];
-    info.textContent = `${def.name} at (${sel})\nH₂ layers: ${mod.h2Layers} | Corrosion: ${mod.corrosion.toFixed(0)}%`;
-    extendBtn.disabled = state.resources.h2 < H2_EXTEND_COST || mod.h2Layers >= 4;
+    info.textContent = t('selected', {
+      name: getModuleName(mod.type),
+      coords: sel,
+      layers: mod.h2Layers,
+      corrosion: mod.corrosion.toFixed(0),
+    });
+    extendBtn.disabled = state.gameOver || state.inventory.h2 < H2_EXTEND_COST || mod.h2Layers >= 4;
   } else {
-    info.textContent = 'Click a module to select.';
+    info.textContent = t('panel.selectedNone');
     extendBtn.disabled = true;
   }
+
+  updateSinkWarning();
+  updateGameOverOverlay();
 }
 
 function buildButtons() {
@@ -96,7 +241,8 @@ function buildButtons() {
     const def = MODULE_TYPES[type];
     const btn = document.createElement('button');
     btn.className = 'build-btn' + (state.selectedBuild === type ? ' active' : '');
-    btn.innerHTML = `<span class="swatch" style="background:${def.color}"></span><span><strong>${def.name}</strong><br><small>${formatCost(def.cost)}</small></span>`;
+    btn.disabled = state.gameOver;
+    btn.innerHTML = `<span class="swatch" style="background:${def.color}"></span><span><strong>${getModuleName(type)}</strong><br><small>${formatBuildCost(def.cost)}</small></span>`;
     btn.addEventListener('click', () => {
       state = { ...state, selectedBuild: type };
       buildButtons();
@@ -105,14 +251,9 @@ function buildButtons() {
   }
 }
 
-function formatCost(cost) {
-  return Object.entries(cost).map(([k, v]) => `${v} ${k.toUpperCase()}`).join(', ');
-}
-
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Venus sky gradient
   const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
   grad.addColorStop(0, '#3d2010');
   grad.addColorStop(0.5, '#2a1510');
@@ -120,7 +261,6 @@ function draw() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Cloud wisps
   ctx.globalAlpha = 0.08;
   for (let i = 0; i < 5; i++) {
     ctx.fillStyle = '#f0883e';
@@ -134,10 +274,9 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  const placeable = getPlaceableHexes(state);
+  const placeable = state.gameOver ? new Set() : getPlaceableHexes(state);
   const visible = new Set([...state.modules.keys(), ...placeable]);
 
-  // Expand visible for hover ring
   if (hoverHex) visible.add(hexKey(hoverHex.q, hoverHex.r));
 
   for (const key of visible) {
@@ -153,21 +292,18 @@ function draw() {
 
     if (mod) {
       const def = MODULE_TYPES[mod.type];
-      drawHex(ctx, cx, cy, HEX_SIZE - 2, def.color + '55', def.color, isSelected ? 3 : 1.5);
+      drawHex(ctx, cx, cy, HEX_DRAW_RADIUS, def.color + '55', def.color, isSelected ? 2 : 1);
 
-      // H2 envelope rings
       for (let layer = 1; layer < mod.h2Layers; layer++) {
-        drawHex(ctx, cx, cy - layer * 4, HEX_SIZE - 6 - layer * 2, null, '#a371f788', 1);
+        drawHex(ctx, cx, cy - layer * 4, HEX_DRAW_RADIUS - 4 - layer * 2, null, '#a371f788', 1);
       }
 
-      // Corrosion overlay
       if (mod.corrosion > 20) {
         ctx.globalAlpha = mod.corrosion / 200;
-        drawHex(ctx, cx, cy, HEX_SIZE - 4, '#f8514966', null);
+        drawHex(ctx, cx, cy, HEX_DRAW_RADIUS, '#f8514966', null);
         ctx.globalAlpha = 1;
       }
 
-      // Label
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'center';
@@ -177,7 +313,7 @@ function draw() {
     } else if (isPlaceable) {
       const fill = isHover ? '#39d4d433' : '#ffffff08';
       const stroke = isHover ? '#39d4d4' : '#ffffff22';
-      drawHex(ctx, cx, cy, HEX_SIZE - 4, fill, stroke, isHover ? 2 : 1);
+      drawHex(ctx, cx, cy, HEX_DRAW_RADIUS, fill, stroke, 1);
       if (isHover) {
         ctx.fillStyle = '#39d4d4';
         ctx.font = '18px sans-serif';
@@ -188,7 +324,6 @@ function draw() {
     }
   }
 
-  // Particles
   particles = particles.filter((p) => {
     p.x += p.vx;
     p.y += p.vy;
@@ -227,6 +362,8 @@ canvas.addEventListener('mouseleave', () => {
 });
 
 canvas.addEventListener('click', (e) => {
+  if (state.gameOver) return;
+
   const { x, y } = canvasCoords(e);
   const { q, r } = pixelToHex(x, y);
   const key = hexKey(q, r);
@@ -249,7 +386,7 @@ canvas.addEventListener('click', (e) => {
 });
 
 document.getElementById('btn-extend-h2').addEventListener('click', () => {
-  if (!state.selectedHex) return;
+  if (!state.selectedHex || state.gameOver) return;
   const result = extendH2(state, state.selectedHex);
   if (result.ok) {
     state = result.state;
@@ -267,19 +404,73 @@ document.getElementById('btn-trade').addEventListener('click', () => {
   if (result.ok) {
     state = result.state;
     showToast(result.message);
+    if (inventoryDialog.open) renderInventoryList();
   } else {
     showToast(result.reason);
   }
   draw();
 });
 
+document.getElementById('btn-settings').addEventListener('click', () => {
+  syncLocaleRadios();
+  settingsDialog.showModal();
+});
+
+document.getElementById('btn-close-settings').addEventListener('click', () => {
+  settingsDialog.close();
+});
+
+settingsDialog.addEventListener('click', (e) => {
+  const rect = settingsDialog.getBoundingClientRect();
+  const inDialog = e.clientX >= rect.left && e.clientX <= rect.right
+    && e.clientY >= rect.top && e.clientY <= rect.bottom;
+  if (!inDialog) settingsDialog.close();
+});
+
+document.querySelectorAll('input[name="locale"]').forEach((input) => {
+  input.addEventListener('change', () => {
+    if (input.checked) setLocale(/** @type {'en'|'ja'} */ (input.value));
+  });
+});
+
+document.getElementById('btn-inventory').addEventListener('click', openInventory);
+
+document.getElementById('btn-close-inventory').addEventListener('click', () => {
+  inventoryDialog.close();
+});
+
+inventoryDialog.addEventListener('click', (e) => {
+  const rect = inventoryDialog.getBoundingClientRect();
+  const inDialog = e.clientX >= rect.left && e.clientX <= rect.right
+    && e.clientY >= rect.top && e.clientY <= rect.bottom;
+  if (!inDialog) inventoryDialog.close();
+});
+
+document.getElementById('btn-restart').addEventListener('click', () => {
+  state = restartGame();
+  particles = [];
+  buildButtons();
+  inventoryDialog.close();
+  draw();
+  showToast(t('msg.restarted'));
+});
+
 setInterval(() => {
-  state = gameTick(state);
-  if (state.lastEvents?.length) {
-    showToast(state.lastEvents[state.lastEvents.length - 1]);
+  if (!state.gameOver) {
+    state = gameTick(state);
+    if (state.lastEvents?.length) {
+      const last = state.lastEvents[state.lastEvents.length - 1];
+      showToast(last);
+    }
+    if (state.gameOver) {
+      buildButtons();
+    }
   }
   draw();
 }, 1000);
 
+onLocaleChange(() => applyLocale());
+
+applyLocale();
 buildButtons();
 draw();
