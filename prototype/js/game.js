@@ -6,6 +6,14 @@ export function getModuleName(type) {
   return t(`module.${type}`);
 }
 
+/** Per-tick atmospheric intake rates (CORE baseline; intake modules stack). */
+export const CORE_INTAKE_RATES = {
+  co2: 2.0,
+  n2: 0.07,
+  h2so4: 0.05,
+  h2o: 0.01,
+};
+
 export const MODULE_TYPES = {
   core: {
     id: 'core',
@@ -15,9 +23,21 @@ export const MODULE_TYPES = {
     baseBuoyancy: 18,
     powerGen: 0,
     powerUse: 3,
-    harvest: 0,
+    intake: 1,
     cost: null,
-    desc: 'Command module. Starting point.',
+    desc: 'Command module. Continuous atmospheric intake.',
+  },
+  intake: {
+    id: 'intake',
+    name: 'Atmospheric Intake',
+    color: '#58a6ff',
+    mass: 8,
+    baseBuoyancy: 6,
+    powerGen: 0,
+    powerUse: 2,
+    intake: 1,
+    cost: { iron: 2, sulfur: 1 },
+    desc: 'Adds CORE-equivalent atmospheric intake.',
   },
   isru: {
     id: 'isru',
@@ -27,9 +47,9 @@ export const MODULE_TYPES = {
     baseBuoyancy: 8,
     powerGen: 0,
     powerUse: 8,
-    harvest: 3,
-    cost: { h2so4: 2, sulfur: 1, iron: 2 },
-    desc: 'Harvests & processes H₂SO₄ → H₂ + S.',
+    intake: 0,
+    cost: { iron: 2, sulfur: 1 },
+    desc: 'Processes CO₂, H₂SO₄ via electrolysis & Bosch.',
   },
   solar: {
     id: 'solar',
@@ -39,8 +59,8 @@ export const MODULE_TYPES = {
     baseBuoyancy: 5,
     powerGen: 15,
     powerUse: 0,
-    harvest: 0,
-    cost: { sulfur: 2, h2: 1, iron: 1 },
+    intake: 0,
+    cost: { iron: 2 },
     desc: 'Generates power above the clouds.',
   },
   h2cell: {
@@ -51,10 +71,23 @@ export const MODULE_TYPES = {
     baseBuoyancy: 14,
     powerGen: 0,
     powerUse: 1,
-    harvest: 0,
-    cost: { h2: 4, sulfur: 1, iron: 2 },
+    intake: 0,
+    cost: { iron: 2, h2: 3 },
     desc: 'Stores hydrogen lift gas.',
   },
+};
+
+/** @typedef {'easy' | 'normal' | 'hard'} Difficulty */
+
+export const DIFFICULTY_LEVELS = ['easy', 'normal', 'hard'];
+
+export const EARTH_AID_INTERVAL = 120;
+
+/** H₂O / Fe granted per aid shipment by difficulty. */
+export const EARTH_AID_AMOUNTS = {
+  easy: { h2o: 4, iron: 2 },
+  normal: { h2o: 2, iron: 1 },
+  hard: { h2o: 0, iron: 0 },
 };
 
 const H2_EXTEND_COST = 3;
@@ -74,7 +107,10 @@ function createEmptyInventory() {
   return inv;
 }
 
-export function createInitialState() {
+/**
+ * @param {Difficulty} [difficulty='normal']
+ */
+export function createInitialState(difficulty = 'normal') {
   const modules = new Map();
   modules.set(hexKey(0, 0), {
     type: 'core',
@@ -82,17 +118,14 @@ export function createInitialState() {
     corrosion: 0,
   });
   const inventory = createEmptyInventory();
-  // Tight starting stock: first module requires Earth purchase or ISRU wait
   inventory.h2so4 = 1;
-  inventory.h2 = 0;
-  inventory.sulfur = 0;
-  inventory.iron = 0;
   inventory.credits = 20;
 
   return {
     modules,
     inventory,
     tick: 0,
+    difficulty,
     selectedBuild: 'isru',
     selectedHex: null,
     messages: [],
@@ -271,7 +304,7 @@ export function computeStats(state) {
   let buoyancy = 0;
   let powerGen = 0;
   let powerUse = 0;
-  let harvest = 0;
+  let intakeUnits = 0;
   let windLoad = 0;
   let corrosion = 0;
   let isruCount = 0;
@@ -282,7 +315,7 @@ export function computeStats(state) {
     buoyancy += def.baseBuoyancy + (mod.h2Layers - 1) * H2_EXTEND_BUOYANCY;
     powerGen += def.powerGen;
     powerUse += def.powerUse;
-    harvest += def.harvest;
+    intakeUnits += def.intake ?? 0;
     windLoad += (mod.h2Layers - 1) * H2_EXTEND_WIND;
     corrosion += mod.corrosion;
     if (mod.type === 'isru') isruCount++;
@@ -291,7 +324,78 @@ export function computeStats(state) {
   const netLift = buoyancy - mass;
   const powerNet = powerGen - powerUse;
 
-  return { mass, buoyancy, netLift, powerGen, powerUse, powerNet, harvest, windLoad, corrosion, isruCount };
+  return { mass, buoyancy, netLift, powerGen, powerUse, powerNet, intakeUnits, windLoad, corrosion, isruCount };
+}
+
+function applyIntake(inventory, intakeUnits) {
+  if (intakeUnits <= 0) return inventory;
+  const next = { ...inventory };
+  for (const [id, rate] of Object.entries(CORE_INTAKE_RATES)) {
+    next[id] = (next[id] ?? 0) + rate * intakeUnits;
+  }
+  return next;
+}
+
+function processIsru(inventory, isruCount, powerNet) {
+  if (isruCount <= 0 || powerNet < 0) return { inventory, events: [], powerDeficit: isruCount > 0 && powerNet < 0 };
+
+  let inv = { ...inventory };
+  const events = [];
+  let processed = 0;
+
+  // Per ISRU per tick: try acid split, Bosch, then CO₂ electrolysis
+  for (let i = 0; i < isruCount; i++) {
+    // H₂SO₄ → H₂ + S + H₂O
+    if (inv.h2so4 >= 1) {
+      inv.h2so4 -= 1;
+      inv.h2 = (inv.h2 ?? 0) + 1.2;
+      inv.sulfur = (inv.sulfur ?? 0) + 0.4;
+      inv.h2o = (inv.h2o ?? 0) + 0.4;
+      processed++;
+      continue;
+    }
+    // Bosch: CO₂ + 2 H₂ → C + H₂O
+    if (inv.co2 >= 1 && inv.h2 >= 2) {
+      inv.co2 -= 1;
+      inv.h2 -= 2;
+      inv.carbon = (inv.carbon ?? 0) + 0.4;
+      inv.h2o = (inv.h2o ?? 0) + 0.8;
+      processed++;
+      continue;
+    }
+    // CO₂ electrolysis: 2 CO₂ → C + O₂
+    if (inv.co2 >= 2) {
+      inv.co2 -= 2;
+      inv.carbon = (inv.carbon ?? 0) + 0.3;
+      inv.o2 = (inv.o2 ?? 0) + 0.6;
+      processed++;
+    }
+  }
+
+  if (processed > 0) {
+    events.push(t('msg.isruProcess', { amount: processed }));
+  }
+
+  return { inventory: inv, events, powerDeficit: false };
+}
+
+function applyEarthAid(state, inventory) {
+  const nextTick = state.tick + 1;
+  if (nextTick % EARTH_AID_INTERVAL !== 0) return { inventory, event: null };
+
+  const amounts = EARTH_AID_AMOUNTS[state.difficulty] ?? EARTH_AID_AMOUNTS.normal;
+  if (amounts.h2o === 0 && amounts.iron === 0) {
+    return { inventory, event: null };
+  }
+
+  const next = { ...inventory };
+  next.h2o = (next.h2o ?? 0) + amounts.h2o;
+  next.iron = (next.iron ?? 0) + amounts.iron;
+
+  return {
+    inventory: next,
+    event: t('msg.earthAid', { h2o: amounts.h2o, iron: amounts.iron }),
+  };
 }
 
 export function gameTick(state) {
@@ -302,22 +406,21 @@ export function gameTick(state) {
   let inventory = { ...state.inventory };
   const events = [];
 
-  // Atmospheric harvest
-  const harvested = stats.harvest;
-  if (harvested > 0) {
-    inventory.h2so4 += harvested;
-    events.push(t('msg.harvest', { amount: harvested }));
+  // Atmospheric intake (CORE + intake modules)
+  if (stats.intakeUnits > 0) {
+    inventory = applyIntake(inventory, stats.intakeUnits);
   }
 
-  // ISRU processing: H₂SO₄ → H₂ + S (needs power)
-  const canProcess = stats.powerNet >= 0 && inventory.h2so4 >= 1 && stats.isruCount > 0;
-  if (canProcess) {
-    const maxProcess = Math.min(inventory.h2so4, stats.isruCount * 2);
-    inventory.h2so4 -= maxProcess;
-    inventory.h2 += maxProcess * 1.5;
-    inventory.sulfur += maxProcess * 0.5;
-    events.push(t('msg.isruProcess', { amount: maxProcess }));
-  } else if (stats.isruCount > 0 && inventory.h2so4 >= 1 && stats.powerNet < 0) {
+  // Earth periodic aid (separate from paid market)
+  const aid = applyEarthAid(state, inventory);
+  inventory = aid.inventory;
+  if (aid.event) events.push(aid.event);
+
+  // ISRU processing
+  const isruResult = processIsru(inventory, stats.isruCount, stats.powerNet);
+  inventory = isruResult.inventory;
+  events.push(...isruResult.events);
+  if (isruResult.powerDeficit) {
     events.push(t('msg.powerDeficit'));
   }
 
@@ -366,8 +469,11 @@ export function gameTick(state) {
   };
 }
 
-export function restartGame() {
-  return createInitialState();
+/**
+ * @param {Difficulty} [difficulty='normal']
+ */
+export function restartGame(difficulty = 'normal') {
+  return createInitialState(difficulty);
 }
 
 export { H2_EXTEND_COST, TRADE_SULFUR_COST };
