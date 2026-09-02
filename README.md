@@ -7,6 +7,7 @@ Game Design Document and **2D browser prototype** for *Aetheria: Venus Expansion
 | Path | Description |
 |------|-------------|
 | [docs/GDD.md](docs/GDD.md) | Full Game Design Document (English) |
+| [docs/ゲームルール.md](docs/ゲームルール.md) | **Playable rules (Japanese)** — source of truth for the next prototype sprint |
 | [prototype/](prototype/) | Playable 2D browser prototype |
 
 ## Run the Prototype
@@ -47,4 +48,4 @@ Then open **http://localhost:8080**.
 - **Science**: 50 km altitude, superrotation, acid corrosion, surface explorer heat-only
 - **Tone**: Hopeful Earth–Venus partnership; self-sufficiency is an optional proud goal
 
-See [docs/GDD.md](docs/GDD.md) for the complete design.
+See [docs/GDD.md](docs/GDD.md) for the complete design. For implementation-ready rules (scale, Venus atmosphere harvest, CO₂/C, CORE intake, unit vs continent terminology), see **[docs/ゲームルール.md](docs/ゲームルール.md)**.
