@@ -499,7 +499,7 @@ function processIsru(inventory, isruCount, powerNet) {
     if (inv.co2 >= 1 && h2Spendable >= 1) {
       inv.co2 -= 1;
       inv.h2 -= 1;
-      inv.carbon = (inv.carbon ?? 0) + 0.4;
+      inv.carbon = (inv.carbon ?? 0) + 1.0;
       inv.h2o = (inv.h2o ?? 0) + 0.8;
       processed++;
       continue;
