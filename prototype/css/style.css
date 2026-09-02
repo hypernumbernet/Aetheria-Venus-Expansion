@@ -33,8 +33,38 @@ body {
 }
 
 .header {
+  position: relative;
   text-align: center;
   margin-bottom: 1rem;
+  padding-top: 0.25rem;
+}
+
+.settings-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.settings-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+  background: #21262d;
+}
+
+.gear-icon {
+  display: block;
 }
 
 .header h1 {
@@ -275,6 +305,49 @@ body {
 @keyframes pulse-warning {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.75; }
+}
+
+/* Settings dialog */
+.settings-dialog {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 0 1rem;
+  background: var(--bg-panel);
+  color: var(--text);
+  max-width: 320px;
+  width: calc(100% - 2rem);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+.settings-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.settings-fieldset {
+  border: none;
+  margin: 0;
+  padding: 0.75rem 1rem 0;
+}
+
+.settings-fieldset legend {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.locale-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.locale-option input {
+  accent-color: var(--accent);
 }
 
 /* Inventory dialog */

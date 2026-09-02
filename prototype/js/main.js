@@ -17,6 +17,7 @@ import {
   getPlaceableHexes,
   restartGame,
   formatBuildCost,
+  getModuleName,
   H2_EXTEND_COST,
   SINK_COUNTDOWN_MAX,
   SINK_WARNING_AT,
@@ -24,9 +25,18 @@ import {
 import {
   MATERIALS,
   INVENTORY_IDS,
-  formatMaterialName,
+  getMaterialName,
+  getMaterialDesc,
+  getMaterialObtainLabel,
   formatAmount,
 } from './materials.js';
+import {
+  getLocale,
+  setLocale,
+  onLocaleChange,
+  t,
+  applyStaticI18n,
+} from './i18n.js';
 
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
@@ -39,8 +49,24 @@ let particles = [];
 const OFFSET = { x: canvas.width / 2, y: canvas.height / 2 };
 
 const inventoryDialog = document.getElementById('inventory-dialog');
+const settingsDialog = document.getElementById('settings-dialog');
 const gameoverOverlay = document.getElementById('gameover-overlay');
 const sinkWarning = document.getElementById('sink-warning');
+
+function syncLocaleRadios() {
+  const loc = getLocale();
+  for (const input of document.querySelectorAll('input[name="locale"]')) {
+    input.checked = input.value === loc;
+  }
+}
+
+function applyLocale() {
+  applyStaticI18n();
+  syncLocaleRadios();
+  buildButtons();
+  if (inventoryDialog.open) renderInventoryList();
+  draw();
+}
 
 function showToast(msg) {
   const el = document.getElementById('toast');
@@ -73,10 +99,10 @@ function updateSinkWarning() {
   sinkWarning.hidden = false;
   const remaining = SINK_COUNTDOWN_MAX - cd;
   if (cd >= SINK_WARNING_AT) {
-    sinkWarning.textContent = `⚠ 浮力不足 — 沈没まで ${remaining} ティック`;
+    sinkWarning.textContent = t('sink.warning', { remaining });
     sinkWarning.className = 'sink-warning danger';
   } else {
-    sinkWarning.textContent = `浮力がマイナス — 注意（${remaining} ティックで沈没）`;
+    sinkWarning.textContent = t('sink.caution', { remaining });
     sinkWarning.className = 'sink-warning';
   }
 }
@@ -103,9 +129,9 @@ function renderInventoryList() {
     const info = document.createElement('div');
     info.className = 'inventory-info';
     info.innerHTML = `
-      <strong>${formatMaterialName(id)}</strong>
-      <span class="inventory-desc">${mat.descJa}</span>
-      <span class="inventory-obtain">${mat.obtainLabelJa}</span>
+      <strong>${getMaterialName(id)}</strong>
+      <span class="inventory-desc">${getMaterialDesc(id)}</span>
+      <span class="inventory-obtain">${getMaterialObtainLabel(id)}</span>
     `;
 
     const holding = document.createElement('div');
@@ -119,7 +145,7 @@ function renderInventoryList() {
       const buyBtn = document.createElement('button');
       buyBtn.type = 'button';
       buyBtn.className = 'buy-btn';
-      buyBtn.textContent = `購入（${mat.buyPrice}₵）`;
+      buyBtn.textContent = t('inventory.buy', { price: mat.buyPrice });
       buyBtn.disabled = state.gameOver || (state.inventory.credits ?? 0) < mat.buyPrice;
       buyBtn.addEventListener('click', () => {
         const result = buyMaterial(state, id, 1);
@@ -136,7 +162,7 @@ function renderInventoryList() {
     } else if (id === 'credits') {
       const hint = document.createElement('span');
       hint.className = 'inventory-hint';
-      hint.textContent = '硫黄を地球へ輸出して獲得';
+      hint.textContent = t('inventory.creditsHint');
       actions.appendChild(hint);
     }
 
@@ -151,7 +177,7 @@ function renderInventoryList() {
     const mat = MATERIALS[id];
     const item = document.createElement('div');
     item.className = 'inventory-locked-item';
-    item.innerHTML = `<span>${formatMaterialName(id)}</span><span class="locked-badge">近日実装</span>`;
+    item.innerHTML = `<span>${getMaterialName(id)}</span><span class="locked-badge">${t('inventory.comingSoon')}</span>`;
     lockedSection.appendChild(item);
   }
 }
@@ -185,18 +211,22 @@ function updateUI() {
   set('res-iron', state.inventory.iron.toFixed(1));
   set('res-credits', state.inventory.credits.toFixed(0));
 
-  document.getElementById('tick-counter').textContent = `Tick ${state.tick}`;
+  document.getElementById('tick-counter').textContent = t('tick', { n: state.tick });
 
   const sel = state.selectedHex;
   const info = document.getElementById('selected-info');
   const extendBtn = document.getElementById('btn-extend-h2');
   if (sel && state.modules.has(sel)) {
     const mod = state.modules.get(sel);
-    const def = MODULE_TYPES[mod.type];
-    info.textContent = `${def.name} at (${sel})\nH₂ layers: ${mod.h2Layers} | Corrosion: ${mod.corrosion.toFixed(0)}%`;
+    info.textContent = t('selected', {
+      name: getModuleName(mod.type),
+      coords: sel,
+      layers: mod.h2Layers,
+      corrosion: mod.corrosion.toFixed(0),
+    });
     extendBtn.disabled = state.gameOver || state.inventory.h2 < H2_EXTEND_COST || mod.h2Layers >= 4;
   } else {
-    info.textContent = 'Click a module to select.';
+    info.textContent = t('panel.selectedNone');
     extendBtn.disabled = true;
   }
 
@@ -212,7 +242,7 @@ function buildButtons() {
     const btn = document.createElement('button');
     btn.className = 'build-btn' + (state.selectedBuild === type ? ' active' : '');
     btn.disabled = state.gameOver;
-    btn.innerHTML = `<span class="swatch" style="background:${def.color}"></span><span><strong>${def.name}</strong><br><small>${formatBuildCost(def.cost)}</small></span>`;
+    btn.innerHTML = `<span class="swatch" style="background:${def.color}"></span><span><strong>${getModuleName(type)}</strong><br><small>${formatBuildCost(def.cost)}</small></span>`;
     btn.addEventListener('click', () => {
       state = { ...state, selectedBuild: type };
       buildButtons();
@@ -381,6 +411,28 @@ document.getElementById('btn-trade').addEventListener('click', () => {
   draw();
 });
 
+document.getElementById('btn-settings').addEventListener('click', () => {
+  syncLocaleRadios();
+  settingsDialog.showModal();
+});
+
+document.getElementById('btn-close-settings').addEventListener('click', () => {
+  settingsDialog.close();
+});
+
+settingsDialog.addEventListener('click', (e) => {
+  const rect = settingsDialog.getBoundingClientRect();
+  const inDialog = e.clientX >= rect.left && e.clientX <= rect.right
+    && e.clientY >= rect.top && e.clientY <= rect.bottom;
+  if (!inDialog) settingsDialog.close();
+});
+
+document.querySelectorAll('input[name="locale"]').forEach((input) => {
+  input.addEventListener('change', () => {
+    if (input.checked) setLocale(/** @type {'en'|'ja'} */ (input.value));
+  });
+});
+
 document.getElementById('btn-inventory').addEventListener('click', openInventory);
 
 document.getElementById('btn-close-inventory').addEventListener('click', () => {
@@ -400,7 +452,7 @@ document.getElementById('btn-restart').addEventListener('click', () => {
   buildButtons();
   inventoryDialog.close();
   draw();
-  showToast('新しい大陸で再開しました。');
+  showToast(t('msg.restarted'));
 });
 
 setInterval(() => {
@@ -417,5 +469,8 @@ setInterval(() => {
   draw();
 }, 1000);
 
+onLocaleChange(() => applyLocale());
+
+applyLocale();
 buildButtons();
 draw();

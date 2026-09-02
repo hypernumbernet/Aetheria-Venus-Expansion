@@ -1,5 +1,10 @@
 import { hexKey, getNeighbors } from './hex.js';
-import { MATERIALS, INVENTORY_IDS, formatMaterialName } from './materials.js';
+import { MATERIALS, INVENTORY_IDS, getMaterialName } from './materials.js';
+import { t, costSeparator } from './i18n.js';
+
+export function getModuleName(type) {
+  return t(`module.${type}`);
+}
 
 export const MODULE_TYPES = {
   core: {
@@ -116,8 +121,8 @@ export function payCost(inventory, cost) {
 
 export function formatBuildCost(cost) {
   return Object.entries(cost)
-    .map(([k, v]) => `${v} ${formatMaterialName(k)}`)
-    .join('、');
+    .map(([k, v]) => `${v} ${getMaterialName(k)}`)
+    .join(costSeparator());
 }
 
 export function getMissingMaterials(inventory, cost) {
@@ -130,20 +135,20 @@ export function getMissingMaterials(inventory, cost) {
 }
 
 export function buyMaterial(state, materialId, amount = 1) {
-  if (state.gameOver) return { ok: false, reason: 'ゲームオーバーです。再起動してください。' };
+  if (state.gameOver) return { ok: false, reason: t('msg.gameOver') };
 
   const mat = MATERIALS[materialId];
-  if (!mat) return { ok: false, reason: '不明な材料です。' };
-  if (mat.locked) return { ok: false, reason: `${mat.nameJa}はまだ利用できません。` };
-  if (!mat.purchasable) return { ok: false, reason: `${mat.nameJa}は購入できません。` };
-  if (amount < 1) return { ok: false, reason: '数量が不正です。' };
+  if (!mat) return { ok: false, reason: t('msg.unknownMaterial') };
+  if (mat.locked) return { ok: false, reason: t('msg.materialLocked', { name: getMaterialName(materialId) }) };
+  if (!mat.purchasable) return { ok: false, reason: t('msg.materialNotBuyable', { name: getMaterialName(materialId) }) };
+  if (amount < 1) return { ok: false, reason: t('msg.invalidAmount') };
 
   const totalCost = mat.buyPrice * amount;
   const credits = state.inventory.credits ?? 0;
   if (credits < totalCost) {
     return {
       ok: false,
-      reason: `クレジット不足（必要 ${totalCost}₵、所持 ${credits.toFixed(0)}₵）。硫黄を地球へ輸出して稼いでください。`,
+      reason: t('msg.insufficientCredits', { need: totalCost, have: credits.toFixed(0) }),
     };
   }
 
@@ -154,7 +159,7 @@ export function buyMaterial(state, materialId, amount = 1) {
   return {
     ok: true,
     state: { ...state, inventory },
-    message: `${formatMaterialName(materialId)} ×${amount} を ${totalCost}₵ で購入しました。`,
+    message: t('msg.bought', { name: getMaterialName(materialId), amount, cost: totalCost }),
   };
 }
 
@@ -186,24 +191,24 @@ function parseKeyLocal(key) {
 }
 
 export function placeModule(state, q, r) {
-  if (state.gameOver) return { ok: false, reason: 'ゲームオーバーです。再起動してください。' };
+  if (state.gameOver) return { ok: false, reason: t('msg.gameOver') };
 
   const key = hexKey(q, r);
   const placeable = getPlaceableHexes(state);
-  if (!placeable.has(key)) return { ok: false, reason: '大陸に隣接するヘックスにのみ建設できます。' };
+  if (!placeable.has(key)) return { ok: false, reason: t('msg.mustBeAdjacent') };
 
   const type = state.selectedBuild;
   const def = MODULE_TYPES[type];
-  if (!def || !def.cost) return { ok: false, reason: '無効なモジュールです。' };
+  if (!def || !def.cost) return { ok: false, reason: t('msg.invalidModule') };
 
   if (!canAfford(state.inventory, def.cost)) {
     const missing = getMissingMaterials(state.inventory, def.cost);
     const detail = missing
-      .map((m) => `${formatMaterialName(m.id)}（必要 ${m.need}、所持 ${m.have.toFixed(1)}）`)
-      .join('、');
+      .map((m) => t('msg.missingEntry', { name: getMaterialName(m.id), need: m.need, have: m.have.toFixed(1) }))
+      .join(costSeparator());
     return {
       ok: false,
-      reason: `材料不足：${detail}。在庫画面で地球市場から購入するか、ISRUの収穫を待ってください。`,
+      reason: t('msg.insufficientMaterials', { detail }),
     };
   }
 
@@ -217,20 +222,20 @@ export function placeModule(state, q, r) {
       inventory: payCost(state.inventory, def.cost),
       selectedHex: key,
     },
-    message: `${def.name} を建設しました（${formatBuildCost(def.cost)} 消費）`,
+    message: t('msg.built', { name: getModuleName(type), cost: formatBuildCost(def.cost) }),
   };
 }
 
 export function extendH2(state, key) {
-  if (state.gameOver) return { ok: false, reason: 'ゲームオーバーです。再起動してください。' };
+  if (state.gameOver) return { ok: false, reason: t('msg.gameOver') };
 
   const mod = state.modules.get(key);
-  if (!mod) return { ok: false, reason: 'モジュールが選択されていません。' };
+  if (!mod) return { ok: false, reason: t('msg.noModuleSelected') };
   if (state.inventory.h2 < H2_EXTEND_COST) {
-    return { ok: false, reason: `H₂層の延伸には ${H2_EXTEND_COST}t の水素が必要です。` };
+    return { ok: false, reason: t('msg.needH2Extend', { amount: H2_EXTEND_COST }) };
   }
   if (mod.h2Layers >= 4) {
-    return { ok: false, reason: 'H₂層は最大高度に達しています。' };
+    return { ok: false, reason: t('msg.h2MaxHeight') };
   }
 
   const modules = new Map(state.modules);
@@ -239,15 +244,15 @@ export function extendH2(state, key) {
   return {
     ok: true,
     state: { ...state, modules, inventory },
-    message: 'H₂エンベロープを延伸 — 浮力↑、風荷重↑',
+    message: t('msg.h2Extended'),
   };
 }
 
 export function tradeWithEarth(state) {
-  if (state.gameOver) return { ok: false, reason: 'ゲームオーバーです。再起動してください。' };
+  if (state.gameOver) return { ok: false, reason: t('msg.gameOver') };
 
   if (state.inventory.sulfur < TRADE_SULFUR_COST) {
-    return { ok: false, reason: `地球への輸出には硫黄 ${TRADE_SULFUR_COST}t が必要です。` };
+    return { ok: false, reason: t('msg.needSulfurTrade', { amount: TRADE_SULFUR_COST }) };
   }
   const inventory = {
     ...state.inventory,
@@ -257,7 +262,7 @@ export function tradeWithEarth(state) {
   return {
     ok: true,
     state: { ...state, inventory },
-    message: `地球へ硫黄を輸出 — +${TRADE_CREDITS_GAIN}₵ クレジット`,
+    message: t('msg.traded', { gain: TRADE_CREDITS_GAIN }),
   };
 }
 
@@ -301,7 +306,7 @@ export function gameTick(state) {
   const harvested = stats.harvest;
   if (harvested > 0) {
     inventory.h2so4 += harvested;
-    events.push(`+${harvested} H₂SO₄ from clouds`);
+    events.push(t('msg.harvest', { amount: harvested }));
   }
 
   // ISRU processing: H₂SO₄ → H₂ + S (needs power)
@@ -311,9 +316,9 @@ export function gameTick(state) {
     inventory.h2so4 -= maxProcess;
     inventory.h2 += maxProcess * 1.5;
     inventory.sulfur += maxProcess * 0.5;
-    events.push(`ISRU: ${maxProcess} H₂SO₄ → H₂ + S`);
+    events.push(t('msg.isruProcess', { amount: maxProcess }));
   } else if (stats.isruCount > 0 && inventory.h2so4 >= 1 && stats.powerNet < 0) {
-    events.push('Power deficit — ISRU idle');
+    events.push(t('msg.powerDeficit'));
   }
 
   // Corrosion tick
@@ -324,7 +329,7 @@ export function gameTick(state) {
 
   // Wind stress warning
   if (stats.windLoad > 15 && stats.netLift < 10) {
-    events.push('Wind shear warning — reinforce or reduce H₂ height');
+    events.push(t('msg.windShear'));
   }
 
   // Sink countdown
@@ -335,16 +340,16 @@ export function gameTick(state) {
     sinkCountdown += 1;
     const remaining = SINK_COUNTDOWN_MAX - sinkCountdown;
     if (sinkCountdown === SINK_WARNING_AT) {
-      events.push('⚠ 浮力不足 — 大陸が沈み始めています！');
+      events.push(t('msg.sinkStart'));
     } else if (remaining > 0 && sinkCountdown > SINK_WARNING_AT) {
-      events.push(`沈没まであと ${remaining} ティック`);
+      events.push(t('msg.sinkCountdown', { remaining }));
     } else if (sinkCountdown >= SINK_COUNTDOWN_MAX) {
       gameOver = true;
-      events.push('大陸が雲の下へ沈没しました…');
+      events.push(t('msg.sank'));
     }
   } else {
     if (sinkCountdown > 0) {
-      events.push('浮力回復 — 沈没カウントダウン解除');
+      events.push(t('msg.buoyancyRecovered'));
     }
     sinkCountdown = 0;
   }
