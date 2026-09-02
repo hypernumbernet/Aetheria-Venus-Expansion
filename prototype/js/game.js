@@ -101,8 +101,13 @@ const H2_EXTEND_WIND = 4;
 const TRADE_SULFUR_COST = 2;
 const TRADE_CREDITS_GAIN = 5;
 
-/** Carried inventory mass coefficient (§7.1): 1 t resource ≈ 0.05 t structural mass. */
+/** Carried inventory mass coefficient (§7.1): 1 t cargo ≈ 0.05 t structural mass. */
 export const INVENTORY_MASS_PER_TON = 0.05;
+
+/** Cargo that adds carried mass. Raw atmosphere buffers (CO₂, N₂) and credits are excluded. */
+export const INVENTORY_CARGO_MASS_IDS = [
+  'iron', 'h2o', 'sulfur', 'carbon', 'h2', 'o2', 'h2so4',
+];
 
 const COATING_S_COST = 1;
 const COATING_CORROSION_REDUCE = 25;
@@ -137,7 +142,7 @@ export function createInitialState(difficulty = 'normal') {
   const inventory = createEmptyInventory();
   inventory.h2so4 = 1;
   inventory.sulfur = 1;
-  inventory.credits = 20;
+  inventory.credits = 30;
 
   return {
     modules,
@@ -346,8 +351,7 @@ export function tradeWithEarth(state) {
 
 export function computeInventoryMass(inventory) {
   let total = 0;
-  for (const id of INVENTORY_IDS) {
-    if (id === 'credits') continue;
+  for (const id of INVENTORY_CARGO_MASS_IDS) {
     total += (inventory[id] ?? 0) * INVENTORY_MASS_PER_TON;
   }
   return total;

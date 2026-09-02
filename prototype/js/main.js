@@ -196,6 +196,7 @@ function renderInventoryList() {
 }
 
 function openInventory() {
+  if (!state || state.gameOver) return;
   renderInventoryList();
   inventoryDialog.showModal();
 }
@@ -257,6 +258,11 @@ function updateUI() {
 
   updateSinkWarning();
   updateGameOverOverlay();
+
+  const inventoryBtn = document.getElementById('btn-inventory');
+  if (inventoryBtn) {
+    inventoryBtn.disabled = state.gameOver;
+  }
 }
 
 function buildButtons() {
@@ -379,15 +385,28 @@ function canvasCoords(e) {
   };
 }
 
+function isTickPaused() {
+  return newgameDialog.open
+    || inventoryDialog.open
+    || settingsDialog.open
+    || !gameoverOverlay.hidden;
+}
+
+function closeBlockingDialogs() {
+  if (inventoryDialog.open) inventoryDialog.close();
+  if (settingsDialog.open) settingsDialog.close();
+}
+
 function runTick() {
-  if (!gameStarted || !state || state.gameOver) return;
+  if (!gameStarted || !state || state.gameOver || isTickPaused()) return;
   state = gameTick(state);
+  if (state.gameOver) {
+    closeBlockingDialogs();
+    buildButtons();
+  }
   if (state.lastEvents?.length) {
     const last = state.lastEvents[state.lastEvents.length - 1];
     showToast(last);
-  }
-  if (state.gameOver) {
-    buildButtons();
   }
   draw();
 }
@@ -469,6 +488,7 @@ document.getElementById('btn-trade').addEventListener('click', () => {
 });
 
 document.getElementById('btn-settings').addEventListener('click', () => {
+  if (state?.gameOver) return;
   syncLocaleRadios();
   settingsDialog.showModal();
 });
