@@ -21,6 +21,7 @@ import {
   restartGame,
   formatBuildCost,
   getModuleName,
+  getIsruStatusLabel,
   H2_EXTEND_COST,
   COATING_S_COST,
   C_LIGHTEN_COST,
@@ -90,6 +91,19 @@ function applyLocale() {
   if (gameStarted) buildButtons();
   if (inventoryDialog.open) renderInventoryList();
   draw();
+}
+
+function pickToastEvent(events) {
+  if (!events?.length) return null;
+  const priority = (msg) => {
+    if (msg.includes('沈没') || msg.includes('sank') || msg.includes('Sinking') || msg.includes('sank')) return 0;
+    if (msg.includes('援助') || msg.includes('aid arrived') || msg.includes('periodic aid')) return 1;
+    if (msg.includes('硫酸') || msg.includes('acid') || msg.includes('H₂') || msg.includes('hydrogen')) return 2;
+    if (msg.includes('ISRU') || msg.includes('電力不足') || msg.includes('Power deficit')) return 3;
+    if (msg.includes('風') || msg.includes('Wind')) return 4;
+    return 5;
+  };
+  return [...events].sort((a, b) => priority(a) - priority(b))[0];
 }
 
 function showToast(msg) {
@@ -224,6 +238,13 @@ function updateUI() {
     stats.corrosion / state.modules.size > 30 ? 'warning' : '');
   set('stat-difficulty', t(`difficulty.${state.difficulty}`));
 
+  const isruStatusEl = document.getElementById('stat-isru');
+  if (isruStatusEl) {
+    isruStatusEl.textContent = getIsruStatusLabel(state);
+    const status = state.isruWaitStatus ?? 'noIsru';
+    isruStatusEl.className = ['waitingAcid', 'waitingH2', 'noPower'].includes(status) ? 'warning' : '';
+  }
+
   set('res-co2', state.inventory.co2.toFixed(1));
   set('res-carbon', state.inventory.carbon.toFixed(1));
   set('res-n2', state.inventory.n2.toFixed(1));
@@ -295,6 +316,7 @@ function buildButtons() {
     btn.addEventListener('click', () => {
       state = { ...state, selectedBuild: type };
       buildButtons();
+      draw();
     });
     container.appendChild(btn);
   }
@@ -363,12 +385,14 @@ function draw() {
       const abbrev = { core: 'CORE', intake: 'INT', isru: 'ISRU', solar: 'SOL', h2cell: 'H₂' };
       ctx.fillText(abbrev[mod.type] || mod.type, cx, cy);
     } else if (isPlaceable) {
-      const fill = isHover ? '#39d4d433' : '#ffffff08';
-      const stroke = isHover ? '#39d4d4' : '#ffffff22';
-      drawHex(ctx, cx, cy, HEX_DRAW_RADIUS, fill, stroke, 1);
-      if (isHover) {
-        ctx.fillStyle = '#39d4d4';
-        ctx.font = '18px sans-serif';
+      const inBuildMode = !!state.selectedBuild;
+      const fill = inBuildMode ? '#39d4d455' : (isHover ? '#39d4d433' : '#ffffff08');
+      const stroke = inBuildMode ? '#39d4d4' : (isHover ? '#39d4d4' : '#ffffff22');
+      const strokeWidth = inBuildMode ? 2 : 1;
+      drawHex(ctx, cx, cy, HEX_DRAW_RADIUS, fill, stroke, strokeWidth);
+      if (inBuildMode || isHover) {
+        ctx.fillStyle = inBuildMode ? '#39d4d4cc' : '#39d4d4';
+        ctx.font = inBuildMode ? 'bold 16px sans-serif' : '18px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('+', cx, cy);
@@ -432,8 +456,8 @@ function runTick() {
     buildButtons();
   }
   if (state.lastEvents?.length) {
-    const last = state.lastEvents[state.lastEvents.length - 1];
-    showToast(last);
+    const toast = pickToastEvent(state.lastEvents);
+    if (toast) showToast(toast);
   }
   draw();
 }
@@ -465,7 +489,10 @@ canvas.addEventListener('click', (e) => {
     return;
   }
 
-  if (!state.selectedBuild) return;
+  if (!state.selectedBuild) {
+    showToast(t('msg.noBuildSelected'));
+    return;
+  }
 
   const buildType = state.selectedBuild;
   const result = placeModule(state, q, r);
