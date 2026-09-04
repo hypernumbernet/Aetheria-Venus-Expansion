@@ -459,7 +459,7 @@ export function dismantleModule(state, key) {
   const inventory = { ...state.inventory };
   const ironCost = def.cost?.iron ?? 0;
   if (ironCost > 0) {
-    const refund = Math.floor(ironCost * DISMANTLE_IRON_REFUND_RATIO);
+    const refund = Math.max(1, Math.floor(ironCost * DISMANTLE_IRON_REFUND_RATIO));
     if (refund > 0) {
       inventory.iron = (inventory.iron ?? 0) + refund;
     }
