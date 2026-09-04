@@ -14,8 +14,21 @@ export function getModuleName(type) {
 export const CORE_INTAKE_RATES = {
   co2: 2.0,
   n2: 0.073,
-  h2so4: 0.003,
+  h2so4: 0.0045,
   h2o: 0.0004,
+};
+
+/** Acid-split S yield per batch (§4.2). */
+const ACID_SPLIT_S_YIELD = 0.5;
+
+/** H₂ reserve kept for buoyancy cell before Bosch spends surplus (§4.2). */
+const H2_BOSCH_RESERVE = 1;
+
+/** Starting inventory by difficulty (§8.2–8.4). */
+const STARTING_BY_DIFFICULTY = {
+  easy: { credits: 30, h2so4: 2, sulfur: 1, iron: 0 },
+  normal: { credits: 30, h2so4: 2, sulfur: 1, iron: 0 },
+  hard: { credits: 12, h2so4: 2, sulfur: 2, iron: 2 },
 };
 
 export const MODULE_TYPES = {
@@ -99,7 +112,7 @@ const H2_EXTEND_COST = 3;
 const H2_EXTEND_BUOYANCY = 8;
 const H2_EXTEND_WIND = 4;
 const TRADE_SULFUR_COST = 2;
-const TRADE_CREDITS_GAIN = 5;
+const TRADE_CREDITS_GAIN = 6;
 
 /** Carried inventory mass coefficient (§7.1): 1 t cargo ≈ 0.05 t structural mass. */
 export const INVENTORY_MASS_PER_TON = 0.05;
@@ -154,9 +167,11 @@ export function createInitialState(difficulty = 'normal') {
     carbonLighten: 0,
   });
   const inventory = createEmptyInventory();
-  inventory.h2so4 = 1;
-  inventory.sulfur = 1;
-  inventory.credits = 30;
+  const start = STARTING_BY_DIFFICULTY[difficulty] ?? STARTING_BY_DIFFICULTY.normal;
+  inventory.h2so4 = start.h2so4;
+  inventory.sulfur = start.sulfur;
+  inventory.credits = start.credits;
+  inventory.iron = start.iron;
 
   return {
     modules,
@@ -168,6 +183,7 @@ export function createInitialState(difficulty = 'normal') {
     messages: [],
     sinkCountdown: 0,
     gameOver: false,
+    isruWaitStatus: 'noIsru',
   };
 }
 
@@ -477,48 +493,86 @@ function applyIntake(inventory, intakeUnits) {
   return next;
 }
 
-function processIsru(inventory, isruCount, powerNet) {
-  if (isruCount <= 0 || powerNet < 0) return { inventory, events: [], powerDeficit: isruCount > 0 && powerNet < 0 };
+/**
+ * @typedef {'noIsru' | 'noPower' | 'acidReady' | 'boschReady' | 'waitingAcid' | 'waitingH2' | 'electrolyzing' | 'idle'} IsruWaitStatus
+ */
+
+/** What the ISRU chain is blocked on (for HUD). */
+export function analyzeIsruBottleneck(inventory) {
+  if (inventory.h2so4 >= 1) return 'acidReady';
+  if (inventory.h2so4 < 1) return 'waitingAcid';
+  const h2Spendable = (inventory.h2 ?? 0) - H2_BOSCH_RESERVE;
+  if (inventory.co2 >= 1 && h2Spendable >= 1) return 'boschReady';
+  if (inventory.co2 >= 1) return 'waitingH2';
+  return 'idle';
+}
+
+function processIsru(inventory, isruCount, powerNet, prevWaitStatus) {
+  if (isruCount <= 0) {
+    return { inventory, events: [], waitStatus: 'noIsru', powerDeficit: false };
+  }
+  if (powerNet < 0) {
+    return { inventory, events: [], waitStatus: 'noPower', powerDeficit: true };
+  }
 
   let inv = { ...inventory };
   const events = [];
-  let processed = 0;
+  let acidSplits = 0;
+  let boschRuns = 0;
 
   // Per ISRU per tick: try acid split, Bosch, then CO₂ electrolysis
   for (let i = 0; i < isruCount; i++) {
-    // H₂SO₄ → H₂ + S + H₂O
     if (inv.h2so4 >= 1) {
       inv.h2so4 -= 1;
       inv.h2 = (inv.h2 ?? 0) + 2.2;
-      inv.sulfur = (inv.sulfur ?? 0) + 0.4;
+      inv.sulfur = (inv.sulfur ?? 0) + ACID_SPLIT_S_YIELD;
       inv.h2o = (inv.h2o ?? 0) + 0.4;
-      processed++;
+      acidSplits++;
       continue;
     }
-    // Bosch (§4.2 sole C route): reserve 1t H₂ for buoyancy cell — spend only surplus
-    const h2Reserve = 1;
-    const h2Spendable = (inv.h2 ?? 0) - h2Reserve;
+    const h2Spendable = (inv.h2 ?? 0) - H2_BOSCH_RESERVE;
     if (inv.co2 >= 1 && h2Spendable >= 1) {
       inv.co2 -= 1;
       inv.h2 -= 1;
       inv.carbon = (inv.carbon ?? 0) + 1.0;
       inv.h2o = (inv.h2o ?? 0) + 0.8;
-      processed++;
+      boschRuns++;
       continue;
     }
-    // CO₂ electrolysis: O₂ only (life-support); no C — §4.2 Bosch is the C route
     if (inv.co2 >= 1) {
       inv.co2 -= 1;
       inv.o2 = (inv.o2 ?? 0) + 0.1;
-      processed++;
     }
   }
 
-  if (processed > 0) {
-    events.push(t('msg.isruProcess', { amount: processed }));
+  const waitStatus = analyzeIsruBottleneck(inv);
+
+  if (acidSplits > 0) {
+    events.push(t('msg.isruAcidSplit', { amount: acidSplits }));
+  }
+  if (boschRuns > 0) {
+    events.push(t('msg.isruBosch', { amount: boschRuns }));
+  }
+  if (waitStatus === 'waitingAcid' && prevWaitStatus !== 'waitingAcid' && prevWaitStatus !== 'noIsru') {
+    events.push(t('msg.isruWaitingAcid'));
+  }
+  if (waitStatus === 'waitingH2' && prevWaitStatus !== 'waitingH2') {
+    events.push(t('msg.isruWaitingH2'));
+  }
+  if (waitStatus === 'waitingH2' && prevWaitStatus === 'boschReady') {
+    events.push(t('msg.isruH2Reserve'));
   }
 
-  return { inventory: inv, events, powerDeficit: false };
+  return { inventory: inv, events, waitStatus, powerDeficit: false };
+}
+
+/** HUD label for current ISRU bottleneck. */
+export function getIsruStatusLabel(state) {
+  const stats = computeStats(state);
+  if (stats.isruCount <= 0) return t('isru.status.noIsru');
+  if (stats.powerNet < 0) return t('isru.status.noPower');
+  const status = state.isruWaitStatus ?? analyzeIsruBottleneck(state.inventory);
+  return t(`isru.status.${status}`);
 }
 
 function hasCoreModule(modules) {
@@ -575,10 +629,11 @@ export function gameTick(state) {
   if (aid.event) events.push(aid.event);
 
   // ISRU processing (wind load may reduce effective power — §7.1 / §9)
-  const isruResult = processIsru(inventory, stats.isruCount, stats.powerNet);
+  const isruResult = processIsru(inventory, stats.isruCount, stats.powerNet, state.isruWaitStatus ?? 'noIsru');
   inventory = isruResult.inventory;
   events.push(...isruResult.events);
-  if (isruResult.powerDeficit) {
+  const isruWaitStatus = isruResult.waitStatus;
+  if (isruResult.powerDeficit && state.isruWaitStatus !== 'noPower') {
     events.push(t('msg.powerDeficit'));
   }
 
@@ -655,6 +710,7 @@ export function gameTick(state) {
     lastStats: stats,
     sinkCountdown,
     gameOver,
+    isruWaitStatus,
   };
 }
 
