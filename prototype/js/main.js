@@ -32,6 +32,10 @@ import {
   getEarthAidEta,
   getCorrosionPenalties,
   hasCorrosionPenalties,
+  getCorrosionSummary,
+  getCorrosionMaintenanceInfo,
+  canAfford,
+  getMissingMaterials,
   getDismantleIronRefund,
   H2_EXTEND_COST,
   COATING_S_COST,
@@ -57,6 +61,7 @@ import {
   onLocaleChange,
   t,
   applyStaticI18n,
+  costSeparator,
 } from './i18n.js';
 
 const canvas = document.getElementById('game-canvas');
@@ -210,6 +215,7 @@ function renderInventoryList() {
           state = result.state;
           showToast(result.message);
           renderInventoryList();
+          buildButtons();
           draw();
         } else {
           showToast(result.reason);
@@ -228,6 +234,7 @@ function renderInventoryList() {
           state = result.state;
           showToast(result.message);
           renderInventoryList();
+          buildButtons();
           draw();
         } else {
           showToast(result.reason);
@@ -257,6 +264,7 @@ function renderInventoryList() {
           state = result.state;
           showToast(result.message);
           renderInventoryList();
+          buildButtons();
           draw();
         } else {
           showToast(result.reason);
@@ -326,8 +334,29 @@ function updateUI() {
   set('stat-power', `${stats.powerGen.toFixed(0)} / ${stats.powerUse.toFixed(0)} (${stats.powerNet >= 0 ? '+' : ''}${stats.powerNet.toFixed(0)})`,
     stats.powerNet >= 0 ? 'positive' : 'negative');
   set('stat-wind', stats.windLoad.toFixed(0), stats.windLoad > 12 ? 'warning' : '');
-  set('stat-corrosion', (stats.corrosion / state.modules.size).toFixed(1) + '%',
-    stats.corrosion / state.modules.size >= CORROSION_WARN_THRESHOLD ? 'warning' : '');
+  const corrosionSummary = getCorrosionSummary(state.modules);
+  const corrosionAvgEl = document.getElementById('stat-corrosion');
+  const corrosionDetailEl = document.getElementById('stat-corrosion-detail');
+  if (corrosionAvgEl) {
+    corrosionAvgEl.textContent = corrosionSummary.avg.toFixed(1) + '%';
+    corrosionAvgEl.className = corrosionSummary.avg >= CORROSION_WARN_THRESHOLD ? 'warning' : '';
+  }
+  if (corrosionDetailEl) {
+    const showWorst = corrosionSummary.max > corrosionSummary.avg + 0.5
+      || corrosionSummary.penaltyCount > 0;
+    if (showWorst) {
+      corrosionDetailEl.textContent = t('panel.corrosionWorst', {
+        max: corrosionSummary.max.toFixed(0),
+        count: corrosionSummary.penaltyCount,
+      });
+      corrosionDetailEl.hidden = false;
+      corrosionDetailEl.className = corrosionSummary.max >= CORROSION_WARN_THRESHOLD
+        ? 'resource-flow warning'
+        : 'resource-flow';
+    } else {
+      corrosionDetailEl.hidden = true;
+    }
+  }
   set('stat-difficulty', t(`difficulty.${state.difficulty}`));
 
   const isruStatusEl = document.getElementById('stat-isru');
@@ -415,6 +444,16 @@ function updateUI() {
   }
   set('res-h2o', state.inventory.h2o.toFixed(1));
   set('res-sulfur', state.inventory.sulfur.toFixed(1));
+  const sulfurUpkeepEl = document.getElementById('sulfur-upkeep-hint');
+  if (sulfurUpkeepEl) {
+    const upkeep = getCorrosionMaintenanceInfo(state);
+    if (upkeep.active) {
+      sulfurUpkeepEl.textContent = t('panel.sulfurUpkeep', { amount: upkeep.sPerTick });
+      sulfurUpkeepEl.hidden = false;
+    } else {
+      sulfurUpkeepEl.hidden = true;
+    }
+  }
   set('res-iron', state.inventory.iron.toFixed(1));
   set('res-credits', state.inventory.credits.toFixed(0));
 
@@ -510,6 +549,18 @@ function formatBuildPowerLine(preview) {
   return parts.join(' · ');
 }
 
+function formatBuildMissingLine(missing) {
+  if (!missing.length) return '';
+  const detail = missing
+    .map((m) => t('msg.missingEntry', {
+      name: getMaterialName(m.id),
+      need: m.need,
+      have: m.have.toFixed(1),
+    }))
+    .join(costSeparator());
+  return t('panel.buildMaterialShort', { detail });
+}
+
 function buildButtons() {
   if (!state) return;
   const container = document.getElementById('build-buttons');
@@ -517,13 +568,19 @@ function buildButtons() {
   for (const type of ['intake', 'isru', 'solar', 'h2cell']) {
     const def = MODULE_TYPES[type];
     const preview = getBuildPowerPreview(state, type);
+    const affordable = canAfford(state.inventory, def.cost);
+    const missing = affordable ? [] : getMissingMaterials(state.inventory, def.cost);
     const powerClass = preview?.wouldDeficit ? ' build-power-preview warning' : ' build-power-preview';
     const powerLine = preview ? formatBuildPowerLine(preview) : '';
+    const missingLine = formatBuildMissingLine(missing);
+    const missingClass = missingLine ? ' build-material-preview warning' : '';
     const btn = document.createElement('button');
-    btn.className = 'build-btn' + (state.selectedBuild === type ? ' active' : '');
-    btn.disabled = state.gameOver;
-    btn.innerHTML = `<span class="swatch" style="background:${def.color}"></span><span><strong>${getModuleName(type)}</strong><br><small>${formatBuildCost(def.cost)}</small>${powerLine ? `<br><small class="${powerClass.trim()}">${powerLine}</small>` : ''}</span>`;
+    btn.className = 'build-btn' + (state.selectedBuild === type ? ' active' : '')
+      + (!affordable && !state.gameOver ? ' unaffordable' : '');
+    btn.disabled = state.gameOver || !affordable;
+    btn.innerHTML = `<span class="swatch" style="background:${def.color}"></span><span><strong>${getModuleName(type)}</strong><br><small>${formatBuildCost(def.cost)}</small>${missingLine ? `<br><small class="${missingClass.trim()}">${missingLine}</small>` : ''}${powerLine ? `<br><small class="${powerClass.trim()}">${powerLine}</small>` : ''}</span>`;
     btn.addEventListener('click', () => {
+      if (!canAfford(state.inventory, def.cost)) return;
       const next = state.selectedBuild === type ? null : type;
       state = { ...state, selectedBuild: next };
       buildButtons();
@@ -666,8 +723,8 @@ function runTick() {
   state = gameTick(state);
   if (state.gameOver) {
     closeBlockingDialogs();
-    buildButtons();
   }
+  buildButtons();
   if (state.lastEvents?.length) {
     const toast = pickToastEvent(state.lastEvents);
     if (toast) showToast(toast);

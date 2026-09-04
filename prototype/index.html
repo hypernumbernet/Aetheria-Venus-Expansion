@@ -34,7 +34,13 @@
             <div><dt data-i18n="panel.netLift">正味浮力</dt><dd id="stat-net">—</dd></div>
             <div><dt data-i18n="panel.power">電力</dt><dd id="stat-power">—</dd></div>
             <div><dt data-i18n="panel.windLoad">風荷重</dt><dd id="stat-wind">—</dd></div>
-            <div><dt data-i18n="panel.corrosion">腐食</dt><dd id="stat-corrosion">—</dd></div>
+            <div class="stat-corrosion-cell">
+              <dt data-i18n="panel.corrosion">腐食</dt>
+              <dd>
+                <span id="stat-corrosion">—</span>
+                <span id="stat-corrosion-detail" class="resource-flow" hidden></span>
+              </dd>
+            </div>
             <div><dt data-i18n="panel.difficulty">難易度</dt><dd id="stat-difficulty">—</dd></div>
             <div><dt data-i18n="panel.isruStatus">ISRU状態</dt>
               <dd class="isru-status-cell">
@@ -69,6 +75,7 @@
               <dt data-i18n="panel.sulfur">硫黄</dt>
               <dd>
                 <span id="res-sulfur">—</span>
+                <span id="sulfur-upkeep-hint" class="resource-flow" hidden></span>
                 <button type="button" id="btn-sulfur-export-hint" class="sidebar-export-hint" data-i18n="panel.sulfurExportHint">→ 在庫で地球へ輸出</button>
                 <span id="sulfur-export-wait" class="resource-flow" hidden></span>
               </dd>
