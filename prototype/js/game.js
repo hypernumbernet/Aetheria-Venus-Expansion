@@ -442,6 +442,36 @@ export function computeInventoryMass(inventory) {
   return total;
 }
 
+/** Post-placement power preview for build UI (§4.2 / §6.3). */
+export function getBuildPowerPreview(state, moduleType) {
+  const def = MODULE_TYPES[moduleType];
+  if (!def) return null;
+
+  const stats = computeStats(state);
+  const genDelta = def.powerGen ?? 0;
+  const useDelta = def.powerUse ?? 0;
+
+  let windDelta = 0;
+  if (def.baseWindLoad) windDelta += def.baseWindLoad;
+
+  const currentWindPenalty = stats.windLoad > WIND_DAMAGE_THRESHOLD ? WIND_POWER_PENALTY : 0;
+  const newWindPenalty = (stats.windLoad + windDelta) > WIND_DAMAGE_THRESHOLD
+    ? WIND_POWER_PENALTY
+    : 0;
+  const windPenaltyDelta = newWindPenalty - currentWindPenalty;
+
+  const currentNet = stats.powerNet;
+  const projectedNet = currentNet + genDelta - useDelta - windPenaltyDelta;
+
+  return {
+    genDelta,
+    useDelta,
+    currentNet,
+    projectedNet,
+    wouldDeficit: projectedNet < 0,
+  };
+}
+
 export function computeStats(state) {
   let moduleMass = 0;
   let buoyancy = 0;
