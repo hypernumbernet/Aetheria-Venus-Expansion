@@ -131,7 +131,7 @@ body {
   gap: 0.35rem 0.75rem;
 }
 
-.stats div {
+.stats > div {
   display: contents;
 }
 
