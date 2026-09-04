@@ -497,13 +497,15 @@ function applyIntake(inventory, intakeUnits) {
  * @typedef {'noIsru' | 'noPower' | 'acidReady' | 'boschReady' | 'waitingAcid' | 'waitingH2' | 'electrolyzing' | 'idle'} IsruWaitStatus
  */
 
-/** What the ISRU chain is blocked on (for HUD). */
+/** What the ISRU chain is blocked on (for HUD). Mirrors processIsru priority. */
 export function analyzeIsruBottleneck(inventory) {
   if (inventory.h2so4 >= 1) return 'acidReady';
-  if (inventory.h2so4 < 1) return 'waitingAcid';
-  const h2Spendable = (inventory.h2 ?? 0) - H2_BOSCH_RESERVE;
+  const h2 = inventory.h2 ?? 0;
+  const h2Spendable = h2 - H2_BOSCH_RESERVE;
   if (inventory.co2 >= 1 && h2Spendable >= 1) return 'boschReady';
-  if (inventory.co2 >= 1) return 'waitingH2';
+  if (inventory.co2 >= 1 && h2 < H2_BOSCH_RESERVE + 1) return 'waitingH2';
+  if (inventory.h2so4 < 1) return 'waitingAcid';
+  if (inventory.co2 >= 1) return 'electrolyzing';
   return 'idle';
 }
 
