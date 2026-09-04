@@ -671,8 +671,8 @@ export function getIsruStatusDetail(state) {
   const stats = computeStats(state);
   if (stats.isruCount <= 0 || stats.powerNet < 0) return null;
 
-  const status = state.isruWaitStatus ?? analyzeIsruBottleneck(state.inventory);
-  if (status !== 'waitingAcid') return null;
+  const h2so4 = state.inventory.h2so4 ?? 0;
+  if (h2so4 >= 1) return null;
 
   const acid = getAcidWaitInfo(state);
   const lines = [];
