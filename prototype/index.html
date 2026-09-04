@@ -64,11 +64,23 @@
               </dd>
             </div>
             <div><dt>H₂O</dt><dd id="res-h2o">—</dd></div>
-            <div><dt data-i18n="panel.sulfur">硫黄</dt><dd id="res-sulfur">—</dd></div>
+            <div class="resource-trade-hint">
+              <dt data-i18n="panel.sulfur">硫黄</dt>
+              <dd>
+                <span id="res-sulfur">—</span>
+                <button type="button" id="btn-sulfur-export-hint" class="sidebar-export-hint" data-i18n="panel.sulfurExportHint">→ 在庫で地球へ輸出</button>
+              </dd>
+            </div>
             <div><dt data-i18n="panel.iron">鉄</dt><dd id="res-iron">—</dd></div>
-            <div><dt data-i18n="panel.earthCredits">地球クレジット</dt><dd id="res-credits">—</dd></div>
+            <div class="resource-trade-hint">
+              <dt data-i18n="panel.earthCredits">地球クレジット</dt>
+              <dd>
+                <span id="res-credits">—</span>
+                <span class="sidebar-export-hint static" data-i18n="panel.creditsExportHint">硫黄の輸出で獲得</span>
+              </dd>
+            </div>
           </dl>
-          <button id="btn-inventory" class="action-btn inventory-open-btn" data-i18n="panel.inventory">在庫・地球市場</button>
+          <button id="btn-inventory" class="action-btn inventory-open-btn" data-i18n="panel.inventory">在庫・地球市場（輸出）</button>
         </section>
 
         <section class="panel">

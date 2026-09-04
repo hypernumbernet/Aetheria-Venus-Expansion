@@ -25,6 +25,7 @@ import {
   getIsruStatusDetail,
   getAcidWaitInfo,
   getO2Flow,
+  getBuildPowerPreview,
   formatH2so4Amount,
   H2_EXTEND_COST,
   COATING_S_COST,
@@ -277,11 +278,12 @@ function updateUI() {
   }
   if (acidProgressWrap && acidProgressBar) {
     const acid = getAcidWaitInfo(state);
-    const showAcid = (state.isruWaitStatus === 'waitingAcid')
-      && computeStats(state).isruCount > 0;
+    const h2so4 = state.inventory.h2so4 ?? 0;
+    const showAcid = stats.isruCount > 0 && stats.powerNet >= 0 && h2so4 < 1;
     acidProgressWrap.hidden = !showAcid;
+    acidProgressWrap.setAttribute('aria-hidden', showAcid ? 'false' : 'true');
     if (showAcid) {
-      acidProgressBar.style.width = `${Math.round(acid.progress * 100)}%`;
+      acidProgressBar.style.width = `${Math.min(100, acid.progress * 100)}%`;
     }
   }
 
@@ -368,6 +370,11 @@ function updateUI() {
     inventoryBtn.disabled = state.gameOver;
   }
 
+  const sulfurExportHint = document.getElementById('btn-sulfur-export-hint');
+  if (sulfurExportHint) {
+    sulfurExportHint.disabled = state.gameOver;
+  }
+
   const buildHint = document.getElementById('build-hint');
   const cancelBuildBtn = document.getElementById('btn-cancel-build');
   if (buildHint) {
@@ -381,16 +388,34 @@ function updateUI() {
   }
 }
 
+function formatBuildPowerLine(preview) {
+  if (!preview) return '';
+  const parts = [];
+  if (preview.genDelta > 0) {
+    parts.push(t('panel.buildPowerGen', { gen: preview.genDelta }));
+  }
+  if (preview.useDelta > 0) {
+    parts.push(t('panel.buildPowerUse', { use: preview.useDelta }));
+  }
+  const net = preview.projectedNet;
+  const netLabel = (net >= 0 ? '+' : '') + net.toFixed(0);
+  parts.push(t('panel.buildPowerNetAfter', { net: netLabel }));
+  return parts.join(' · ');
+}
+
 function buildButtons() {
   if (!state) return;
   const container = document.getElementById('build-buttons');
   container.innerHTML = '';
   for (const type of ['intake', 'isru', 'solar', 'h2cell']) {
     const def = MODULE_TYPES[type];
+    const preview = getBuildPowerPreview(state, type);
+    const powerClass = preview?.wouldDeficit ? ' build-power-preview warning' : ' build-power-preview';
+    const powerLine = preview ? formatBuildPowerLine(preview) : '';
     const btn = document.createElement('button');
     btn.className = 'build-btn' + (state.selectedBuild === type ? ' active' : '');
     btn.disabled = state.gameOver;
-    btn.innerHTML = `<span class="swatch" style="background:${def.color}"></span><span><strong>${getModuleName(type)}</strong><br><small>${formatBuildCost(def.cost)}</small></span>`;
+    btn.innerHTML = `<span class="swatch" style="background:${def.color}"></span><span><strong>${getModuleName(type)}</strong><br><small>${formatBuildCost(def.cost)}</small>${powerLine ? `<br><small class="${powerClass.trim()}">${powerLine}</small>` : ''}</span>`;
     btn.addEventListener('click', () => {
       const next = state.selectedBuild === type ? null : type;
       state = { ...state, selectedBuild: next };
@@ -672,6 +697,11 @@ document.querySelectorAll('input[name="locale"]').forEach((input) => {
 });
 
 document.getElementById('btn-inventory').addEventListener('click', openInventory);
+
+document.getElementById('btn-sulfur-export-hint')?.addEventListener('click', () => {
+  if (!state || state.gameOver) return;
+  openInventory();
+});
 
 document.getElementById('btn-close-inventory').addEventListener('click', () => {
   inventoryDialog.close();
