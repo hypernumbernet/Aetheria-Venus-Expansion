@@ -333,6 +333,38 @@ body {
   border: 1px solid var(--border);
 }
 
+.action-btn.danger {
+  background: #3d1418;
+  color: #f85149;
+  border: 1px solid #f8514966;
+}
+
+.coating-hint {
+  color: var(--warning, #d29922);
+  font-size: 0.75rem;
+  margin: 0.25rem 0 0.5rem;
+  line-height: 1.35;
+}
+
+.vent-btn {
+  background: #21262d;
+  color: #f0883e;
+  border: 1px solid #f0883e55;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.vent-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.vent-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .tick-panel {
   display: flex;
   justify-content: space-between;
