@@ -455,14 +455,10 @@ export function dismantleModule(state, key) {
     return { ok: false, reason: t('msg.cannotDismantleBridge') };
   }
 
-  const def = MODULE_TYPES[mod.type];
   const inventory = { ...state.inventory };
-  const ironCost = def.cost?.iron ?? 0;
-  if (ironCost > 0) {
-    const refund = Math.max(1, Math.floor(ironCost * DISMANTLE_IRON_REFUND_RATIO));
-    if (refund > 0) {
-      inventory.iron = (inventory.iron ?? 0) + refund;
-    }
+  const refund = getDismantleIronRefund(mod);
+  if (refund > 0) {
+    inventory.iron = (inventory.iron ?? 0) + refund;
   }
 
   const selectedHex = state.selectedHex === key ? null : state.selectedHex;
@@ -522,7 +518,31 @@ export function getCorrosionPenalties(corrosion) {
   for (const band of CORROSION_BANDS) {
     if (corrosion >= band.min) return band;
   }
-  return { powerPenalty: 0, massPenalty: 0, buoyancyPenalty: 0 };
+  return { min: 0, powerPenalty: 0, massPenalty: 0, buoyancyPenalty: 0 };
+}
+
+/** §9 — whether corrosion penalties are active on a module. */
+export function hasCorrosionPenalties(corrosion) {
+  return corrosion >= CORROSION_WARN_THRESHOLD;
+}
+
+/** §8.3 — ticks until next Earth periodic aid shipment (null when disabled). */
+export function getEarthAidEta(state) {
+  const amounts = EARTH_AID_AMOUNTS[state.difficulty] ?? EARTH_AID_AMOUNTS.normal;
+  if (amounts.h2o === 0 && amounts.iron === 0) {
+    return { enabled: false, etaTicks: null, amounts };
+  }
+  const remainder = state.tick % EARTH_AID_INTERVAL;
+  const etaTicks = remainder === 0 ? EARTH_AID_INTERVAL : EARTH_AID_INTERVAL - remainder;
+  return { enabled: true, etaTicks, amounts };
+}
+
+/** §7.3 — iron refund preview for dismantle confirm. */
+export function getDismantleIronRefund(mod) {
+  const def = MODULE_TYPES[mod.type];
+  const ironCost = def?.cost?.iron ?? 0;
+  if (ironCost <= 0) return 0;
+  return Math.max(1, Math.floor(ironCost * DISMANTLE_IRON_REFUND_RATIO));
 }
 
 /** Highest corrosion warning band currently active across modules. */
@@ -750,7 +770,13 @@ export function getIntakeAccelHint(state) {
   if (missing.length === 0) return null;
 
   const ids = new Set(missing.map((m) => m.id));
-  if (ids.has('iron')) return t('isru.intakeHintFeShort');
+  if (ids.has('iron')) {
+    const aid = getEarthAidEta(state);
+    if (aid.enabled && aid.etaTicks != null) {
+      return t('isru.intakeHintFeShortWithAid', { eta: aid.etaTicks });
+    }
+    return t('isru.intakeHintFeShort');
+  }
   if (ids.has('carbon')) return t('isru.intakeHintCarbonShort');
   if (ids.has('sulfur')) return t('isru.intakeHintSulfurShort');
   return null;

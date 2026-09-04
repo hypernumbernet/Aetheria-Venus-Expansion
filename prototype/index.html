@@ -45,6 +45,7 @@
                 <div id="stat-isru-detail" class="isru-detail" hidden></div>
               </dd>
             </div>
+            <div><dt data-i18n="panel.earthAid">地球定期援助</dt><dd id="stat-earth-aid">—</dd></div>
           </dl>
         </section>
 
@@ -69,9 +70,16 @@
               <dd>
                 <span id="res-sulfur">—</span>
                 <button type="button" id="btn-sulfur-export-hint" class="sidebar-export-hint" data-i18n="panel.sulfurExportHint">→ 在庫で地球へ輸出</button>
+                <span id="sulfur-export-wait" class="resource-flow" hidden></span>
               </dd>
             </div>
-            <div><dt data-i18n="panel.iron">鉄</dt><dd id="res-iron">—</dd></div>
+            <div class="resource-trade-hint">
+              <dt data-i18n="panel.iron">鉄</dt>
+              <dd>
+                <span id="res-iron">—</span>
+                <span id="iron-aid-hint" class="resource-flow" hidden></span>
+              </dd>
+            </div>
             <div class="resource-trade-hint">
               <dt data-i18n="panel.earthCredits">地球クレジット</dt>
               <dd>

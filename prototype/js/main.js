@@ -29,6 +29,10 @@ import {
   getO2Flow,
   getBuildPowerPreview,
   formatH2so4Amount,
+  getEarthAidEta,
+  getCorrosionPenalties,
+  hasCorrosionPenalties,
+  getDismantleIronRefund,
   H2_EXTEND_COST,
   COATING_S_COST,
   C_LIGHTEN_COST,
@@ -272,6 +276,40 @@ function openInventory() {
   inventoryDialog.showModal();
 }
 
+function formatPenaltyValue(n) {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+function formatCorrosionEffectsLine(corrosion) {
+  if (!hasCorrosionPenalties(corrosion)) return '';
+  const pen = getCorrosionPenalties(corrosion);
+  return t('selectedCorrosionEffects', {
+    power: formatPenaltyValue(pen.powerPenalty),
+    mass: formatPenaltyValue(pen.massPenalty),
+    lift: formatPenaltyValue(pen.buoyancyPenalty),
+  });
+}
+
+function formatSelectedInfo(mod, key) {
+  const isH2Cell = mod.type === 'h2cell';
+  const base = isH2Cell
+    ? t('selectedH2Cell', {
+      name: getModuleName(mod.type),
+      coords: key,
+      floorArea: t('unit.floorArea'),
+      layers: mod.h2Layers,
+      corrosion: mod.corrosion.toFixed(0),
+    })
+    : t('selected', {
+      name: getModuleName(mod.type),
+      coords: key,
+      floorArea: t('unit.floorArea'),
+      corrosion: mod.corrosion.toFixed(0),
+    });
+  const effects = formatCorrosionEffectsLine(mod.corrosion ?? 0);
+  return effects ? `${base}\n${effects}` : base;
+}
+
 function updateUI() {
   if (!state) return;
   const stats = computeStats(state);
@@ -317,6 +355,45 @@ function updateUI() {
     }
   }
 
+  const earthAidEl = document.getElementById('stat-earth-aid');
+  if (earthAidEl) {
+    const aid = getEarthAidEta(state);
+    if (!aid.enabled) {
+      earthAidEl.textContent = t('panel.earthAidNone');
+      earthAidEl.className = '';
+    } else {
+      earthAidEl.textContent = t('panel.earthAidEta', {
+        eta: aid.etaTicks,
+        h2o: aid.amounts.h2o,
+        iron: aid.amounts.iron,
+      });
+      earthAidEl.className = '';
+    }
+  }
+
+  const ironAidHintEl = document.getElementById('iron-aid-hint');
+  if (ironAidHintEl) {
+    const aid = getEarthAidEta(state);
+    const showIronHint = aid.enabled && (state.inventory.iron ?? 0) < 1;
+    if (showIronHint) {
+      ironAidHintEl.textContent = t('panel.earthAidEta', {
+        eta: aid.etaTicks,
+        h2o: aid.amounts.h2o,
+        iron: aid.amounts.iron,
+      });
+      ironAidHintEl.hidden = false;
+    } else {
+      ironAidHintEl.hidden = true;
+    }
+  }
+
+  const sulfurExportWaitEl = document.getElementById('sulfur-export-wait');
+  if (sulfurExportWaitEl) {
+    const sulfurShort = (state.inventory.sulfur ?? 0) < TRADE_SULFUR_COST;
+    sulfurExportWaitEl.textContent = t('panel.sulfurExportWait');
+    sulfurExportWaitEl.hidden = !sulfurShort;
+  }
+
   set('res-co2', state.inventory.co2.toFixed(1));
   set('res-carbon', state.inventory.carbon.toFixed(1));
   set('res-n2', state.inventory.n2.toFixed(1));
@@ -354,20 +431,7 @@ function updateUI() {
   if (sel && state.modules.has(sel)) {
     const mod = state.modules.get(sel);
     const isH2Cell = mod.type === 'h2cell';
-    info.textContent = isH2Cell
-      ? t('selectedH2Cell', {
-        name: getModuleName(mod.type),
-        coords: sel,
-        floorArea: t('unit.floorArea'),
-        layers: mod.h2Layers,
-        corrosion: mod.corrosion.toFixed(0),
-      })
-      : t('selected', {
-        name: getModuleName(mod.type),
-        coords: sel,
-        floorArea: t('unit.floorArea'),
-        corrosion: mod.corrosion.toFixed(0),
-      });
+    info.textContent = formatSelectedInfo(mod, sel);
     if (h2Actions) h2Actions.hidden = !isH2Cell;
     if (isH2Cell) {
       extendBtn.disabled = state.gameOver || state.inventory.h2 < H2_EXTEND_COST || mod.h2Layers >= 4;
@@ -716,7 +780,8 @@ document.getElementById('btn-dismantle')?.addEventListener('click', () => {
   if (!state || !state.selectedHex || state.gameOver) return;
   const mod = state.modules.get(state.selectedHex);
   if (!mod) return;
-  const confirmMsg = t('msg.confirmDismantle', { name: getModuleName(mod.type) });
+  const refund = getDismantleIronRefund(mod);
+  const confirmMsg = t('msg.confirmDismantle', { name: getModuleName(mod.type), iron: refund });
   if (!window.confirm(confirmMsg)) return;
   const key = state.selectedHex;
   const [q, r] = key.split(',').map(Number);
