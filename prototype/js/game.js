@@ -148,6 +148,24 @@ const WIND_POWER_PENALTY = 3;
 export const SINK_COUNTDOWN_MAX = 10;
 export const SINK_WARNING_AT = 5;
 
+/** §9 — corrosion severity bands (light stakes, no instant destruction). */
+export const CORROSION_WARN_THRESHOLD = 50;
+export const CORROSION_SEVERE_THRESHOLD = 75;
+export const CORROSION_CRITICAL_THRESHOLD = 90;
+
+/** Per-module corrosion penalties applied in computeStats (§9 / §7.3). */
+const CORROSION_BANDS = [
+  { min: 90, powerPenalty: 4, massPenalty: 2, buoyancyPenalty: 2 },
+  { min: 75, powerPenalty: 2, massPenalty: 1, buoyancyPenalty: 1 },
+  { min: 50, powerPenalty: 1, massPenalty: 0.5, buoyancyPenalty: 0.5 },
+];
+
+/** §7.3 — scrap refund when dismantling (partial, iron only). */
+const DISMANTLE_IRON_REFUND_RATIO = 0.25;
+
+/** §7.1 — default cargo vent batch (t). */
+export const VENT_CARGO_BATCH = 1;
+
 function createEmptyInventory() {
   const inv = {};
   for (const id of INVENTORY_IDS) {
@@ -186,6 +204,7 @@ export function createInitialState(difficulty = 'normal') {
     sinkCountdown: 0,
     gameOver: false,
     isruWaitStatus: 'noIsru',
+    corrosionWarnLevel: 0,
   };
 }
 
@@ -416,6 +435,70 @@ export function applyCarbonLightening(state, key) {
   };
 }
 
+/** §7.3 — remove a non-CORE module; partial iron refund, connectivity preserved. */
+export function dismantleModule(state, key) {
+  if (state.gameOver) return { ok: false, reason: t('msg.gameOver') };
+
+  const mod = state.modules.get(key);
+  if (!mod) return { ok: false, reason: t('msg.noModuleSelected') };
+  if (mod.type === 'core') {
+    return { ok: false, reason: t('msg.cannotDismantleCore') };
+  }
+  if (state.modules.size <= 1) {
+    return { ok: false, reason: t('msg.cannotDismantleLast') };
+  }
+
+  const modules = new Map(state.modules);
+  modules.delete(key);
+  const coreKey = findCoreKey(modules);
+  if (!coreKey || !isModuleGraphConnected(modules, coreKey)) {
+    return { ok: false, reason: t('msg.cannotDismantleBridge') };
+  }
+
+  const def = MODULE_TYPES[mod.type];
+  const inventory = { ...state.inventory };
+  const ironCost = def.cost?.iron ?? 0;
+  if (ironCost > 0) {
+    const refund = Math.max(1, Math.floor(ironCost * DISMANTLE_IRON_REFUND_RATIO));
+    if (refund > 0) {
+      inventory.iron = (inventory.iron ?? 0) + refund;
+    }
+  }
+
+  const selectedHex = state.selectedHex === key ? null : state.selectedHex;
+  return {
+    ok: true,
+    state: { ...state, modules, inventory, selectedHex },
+    message: t('msg.dismantled', { name: getModuleName(mod.type) }),
+  };
+}
+
+/** §7.1 — vent surplus cargo to reduce carried mass. */
+export function ventCargo(state, materialId, amount = VENT_CARGO_BATCH) {
+  if (state.gameOver) return { ok: false, reason: t('msg.gameOver') };
+
+  if (!INVENTORY_CARGO_MASS_IDS.includes(materialId)) {
+    return { ok: false, reason: t('msg.cannotVentMaterial', { name: getMaterialName(materialId) }) };
+  }
+  if (amount < 0.1) return { ok: false, reason: t('msg.invalidAmount') };
+
+  const have = state.inventory[materialId] ?? 0;
+  if (have < amount) {
+    return {
+      ok: false,
+      reason: t('msg.insufficientCargo', { name: getMaterialName(materialId), need: amount, have: have.toFixed(1) }),
+    };
+  }
+
+  const inventory = { ...state.inventory };
+  inventory[materialId] = have - amount;
+  return {
+    ok: true,
+    state: { ...state, inventory },
+    message: t('msg.ventedCargo', { amount: amount.toFixed(1), name: getMaterialName(materialId) }),
+  };
+}
+
 export function tradeWithEarth(state) {
   if (state.gameOver) return { ok: false, reason: t('msg.gameOver') };
 
@@ -432,6 +515,51 @@ export function tradeWithEarth(state) {
     state: { ...state, inventory },
     message: t('msg.traded', { gain: TRADE_CREDITS_GAIN }),
   };
+}
+
+/** §9 — per-module corrosion stat penalties (light, no destruction). */
+export function getCorrosionPenalties(corrosion) {
+  for (const band of CORROSION_BANDS) {
+    if (corrosion >= band.min) return band;
+  }
+  return { powerPenalty: 0, massPenalty: 0, buoyancyPenalty: 0 };
+}
+
+/** Highest corrosion warning band currently active across modules. */
+export function getCorrosionWarnLevel(modules) {
+  let level = 0;
+  for (const mod of modules.values()) {
+    const c = mod.corrosion ?? 0;
+    if (c >= CORROSION_CRITICAL_THRESHOLD) level = Math.max(level, 3);
+    else if (c >= CORROSION_SEVERE_THRESHOLD) level = Math.max(level, 2);
+    else if (c >= CORROSION_WARN_THRESHOLD) level = Math.max(level, 1);
+  }
+  return level;
+}
+
+function isModuleGraphConnected(modules, coreKey) {
+  if (!modules.has(coreKey)) return false;
+  const visited = new Set([coreKey]);
+  const queue = [coreKey];
+  while (queue.length > 0) {
+    const key = queue.shift();
+    const { q, r } = parseKeyLocal(key);
+    for (const n of getNeighbors(q, r)) {
+      const nk = hexKey(n.q, n.r);
+      if (modules.has(nk) && !visited.has(nk)) {
+        visited.add(nk);
+        queue.push(nk);
+      }
+    }
+  }
+  return visited.size === modules.size;
+}
+
+function findCoreKey(modules) {
+  for (const [key, mod] of modules) {
+    if (mod.type === 'core') return key;
+  }
+  return null;
 }
 
 export function computeInventoryMass(inventory) {
@@ -480,16 +608,19 @@ export function computeStats(state) {
   let intakeUnits = 0;
   let windLoad = 0;
   let corrosion = 0;
+  let corrosionPowerPenalty = 0;
   let isruCount = 0;
 
   for (const mod of state.modules.values()) {
     const def = MODULE_TYPES[mod.type];
     const lighten = mod.carbonLighten ?? 0;
-    moduleMass += def.mass - lighten * C_LIGHTEN_MASS_REDUCE;
+    const cPen = getCorrosionPenalties(mod.corrosion ?? 0);
+    moduleMass += def.mass - lighten * C_LIGHTEN_MASS_REDUCE + cPen.massPenalty;
     const h2LayerBonus = mod.type === 'h2cell' ? (mod.h2Layers - 1) * H2_EXTEND_BUOYANCY : 0;
-    buoyancy += def.baseBuoyancy + h2LayerBonus + lighten * C_LIGHTEN_BUOYANCY;
+    buoyancy += def.baseBuoyancy + h2LayerBonus + lighten * C_LIGHTEN_BUOYANCY - cPen.buoyancyPenalty;
     powerGen += def.powerGen;
-    powerUse += def.powerUse;
+    powerUse += def.powerUse + cPen.powerPenalty;
+    corrosionPowerPenalty += cPen.powerPenalty;
     intakeUnits += def.intake ?? 0;
     if (def.baseWindLoad) {
       windLoad += def.baseWindLoad;
@@ -517,6 +648,7 @@ export function computeStats(state) {
     powerUse,
     powerNet,
     windPowerPenalty,
+    corrosionPowerPenalty,
     intakeUnits,
     windLoad,
     corrosion,
@@ -826,6 +958,19 @@ export function gameTick(state) {
     events.push(t('msg.windShear'));
   }
 
+  // Corrosion threshold warnings (§9 — coating / S upkeep motivation)
+  const corrosionWarnLevel = getCorrosionWarnLevel(modules);
+  const prevCorrosionWarn = state.corrosionWarnLevel ?? 0;
+  if (corrosionWarnLevel > prevCorrosionWarn) {
+    if (corrosionWarnLevel >= 3) {
+      events.push(t('msg.corrosionCritical'));
+    } else if (corrosionWarnLevel >= 2) {
+      events.push(t('msg.corrosionSevere'));
+    } else {
+      events.push(t('msg.corrosionWarn'));
+    }
+  }
+
   // Sink countdown
   let sinkCountdown = state.sinkCountdown ?? 0;
   let gameOver = false;
@@ -858,6 +1003,7 @@ export function gameTick(state) {
     sinkCountdown,
     gameOver,
     isruWaitStatus,
+    corrosionWarnLevel,
   };
 }
 

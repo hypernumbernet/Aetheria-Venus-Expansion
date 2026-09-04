@@ -13,6 +13,8 @@ import {
   lowerH2,
   applySulfurCoating,
   applyCarbonLightening,
+  dismantleModule,
+  ventCargo,
   tradeWithEarth,
   buyMaterial,
   computeStats,
@@ -31,6 +33,9 @@ import {
   COATING_S_COST,
   C_LIGHTEN_COST,
   TRADE_SULFUR_COST,
+  VENT_CARGO_BATCH,
+  INVENTORY_CARGO_MASS_IDS,
+  CORROSION_WARN_THRESHOLD,
   SINK_COUNTDOWN_MAX,
   SINK_WARNING_AT,
 } from './game.js';
@@ -104,9 +109,10 @@ function pickToastEvent(events) {
   const priority = (msg) => {
     if (msg.includes('沈没') || msg.includes('sank') || msg.includes('Sinking') || msg.includes('sank')) return 0;
     if (msg.includes('援助') || msg.includes('aid arrived') || msg.includes('periodic aid')) return 1;
-    if (msg.includes('硫酸') || msg.includes('acid') || msg.includes('H₂') || msg.includes('hydrogen')) return 2;
-    if (msg.includes('ISRU') || msg.includes('電力不足') || msg.includes('Power deficit')) return 3;
-    if (msg.includes('風') || msg.includes('Wind')) return 4;
+    if (msg.includes('腐食') || msg.includes('corrosion') || msg.includes('Corrosion')) return 2;
+    if (msg.includes('硫酸') || msg.includes('acid') || msg.includes('H₂') || msg.includes('hydrogen')) return 3;
+    if (msg.includes('ISRU') || msg.includes('電力不足') || msg.includes('Power deficit')) return 4;
+    if (msg.includes('風') || msg.includes('Wind')) return 5;
     return 5;
   };
   return [...events].sort((a, b) => priority(a) - priority(b))[0];
@@ -229,6 +235,30 @@ function renderInventoryList() {
       hint.className = 'inventory-hint';
       hint.textContent = t('inventory.creditsHint');
       actions.appendChild(hint);
+    } else if (INVENTORY_CARGO_MASS_IDS.includes(id) && amount > 0) {
+      const ventBtn = document.createElement('button');
+      ventBtn.type = 'button';
+      ventBtn.className = 'vent-btn';
+      ventBtn.textContent = t('inventory.ventCargo', { amount: VENT_CARGO_BATCH });
+      ventBtn.title = t('inventory.ventCargoHint');
+      ventBtn.disabled = state.gameOver || amount < VENT_CARGO_BATCH;
+      ventBtn.addEventListener('click', () => {
+        const confirmMsg = t('msg.confirmVent', {
+          amount: VENT_CARGO_BATCH,
+          name: getMaterialName(id),
+        });
+        if (!window.confirm(confirmMsg)) return;
+        const result = ventCargo(state, id, VENT_CARGO_BATCH);
+        if (result.ok) {
+          state = result.state;
+          showToast(result.message);
+          renderInventoryList();
+          draw();
+        } else {
+          showToast(result.reason);
+        }
+      });
+      actions.appendChild(ventBtn);
     }
 
     row.append(info, holding, actions);
@@ -259,7 +289,7 @@ function updateUI() {
     stats.powerNet >= 0 ? 'positive' : 'negative');
   set('stat-wind', stats.windLoad.toFixed(0), stats.windLoad > 12 ? 'warning' : '');
   set('stat-corrosion', (stats.corrosion / state.modules.size).toFixed(1) + '%',
-    stats.corrosion / state.modules.size > 30 ? 'warning' : '');
+    stats.corrosion / state.modules.size >= CORROSION_WARN_THRESHOLD ? 'warning' : '');
   set('stat-difficulty', t(`difficulty.${state.difficulty}`));
 
   const isruStatusEl = document.getElementById('stat-isru');
@@ -319,6 +349,8 @@ function updateUI() {
   const extendBtn = document.getElementById('btn-extend-h2');
   const lowerBtn = document.getElementById('btn-lower-h2');
   const coatingBtn = document.getElementById('btn-apply-coating');
+  const coatingHint = document.getElementById('coating-hint');
+  const dismantleBtn = document.getElementById('btn-dismantle');
   if (sel && state.modules.has(sel)) {
     const mod = state.modules.get(sel);
     const isH2Cell = mod.type === 'h2cell';
@@ -346,6 +378,15 @@ function updateUI() {
     coatingBtn.disabled = state.gameOver
       || (state.inventory.sulfur ?? 0) < COATING_S_COST
       || mod.corrosion <= 0;
+    if (coatingHint) {
+      const showHint = mod.corrosion >= CORROSION_WARN_THRESHOLD
+        && (mod.coatedTicks ?? 0) <= 0;
+      coatingHint.hidden = !showHint;
+      if (showHint) coatingHint.textContent = t('panel.coatingHint');
+    }
+    if (dismantleBtn) {
+      dismantleBtn.disabled = state.gameOver || mod.type === 'core';
+    }
     const lightenBtn = document.getElementById('btn-carbon-lighten');
     if (lightenBtn) {
       lightenBtn.disabled = state.gameOver
@@ -360,6 +401,8 @@ function updateUI() {
     coatingBtn.disabled = true;
     const lightenBtn = document.getElementById('btn-carbon-lighten');
     if (lightenBtn) lightenBtn.disabled = true;
+    if (coatingHint) coatingHint.hidden = true;
+    if (dismantleBtn) dismantleBtn.disabled = true;
   }
 
   updateSinkWarning();
@@ -663,6 +706,26 @@ document.getElementById('btn-carbon-lighten').addEventListener('click', () => {
     const [q, r] = state.selectedHex.split(',').map(Number);
     spawnParticles(q, r, '#58a6ff');
     showToast(result.message);
+  } else {
+    showToast(result.reason);
+  }
+  draw();
+});
+
+document.getElementById('btn-dismantle')?.addEventListener('click', () => {
+  if (!state || !state.selectedHex || state.gameOver) return;
+  const mod = state.modules.get(state.selectedHex);
+  if (!mod) return;
+  const confirmMsg = t('msg.confirmDismantle', { name: getModuleName(mod.type) });
+  if (!window.confirm(confirmMsg)) return;
+  const key = state.selectedHex;
+  const [q, r] = key.split(',').map(Number);
+  const result = dismantleModule(state, key);
+  if (result.ok) {
+    state = result.state;
+    spawnParticles(q, r, '#f85149');
+    showToast(result.message);
+    buildButtons();
   } else {
     showToast(result.reason);
   }
