@@ -25,6 +25,7 @@ import {
   getIsruStatusDetail,
   getAcidWaitInfo,
   getO2Flow,
+  formatH2so4Amount,
   H2_EXTEND_COST,
   COATING_S_COST,
   C_LIGHTEN_COST,
@@ -267,7 +268,7 @@ function updateUI() {
   if (isruStatusEl) {
     isruStatusEl.textContent = getIsruStatusLabel(state);
     const status = state.isruWaitStatus ?? 'noIsru';
-    isruStatusEl.className = ['waitingAcid', 'waitingH2', 'noPower'].includes(status) ? 'warning' : '';
+    isruStatusEl.className = ['waitingAcid', 'waitingH2', 'electrolyzing', 'noPower'].includes(status) ? 'warning' : '';
   }
   if (isruDetailEl) {
     const detail = getIsruStatusDetail(state);
@@ -287,7 +288,7 @@ function updateUI() {
   set('res-co2', state.inventory.co2.toFixed(1));
   set('res-carbon', state.inventory.carbon.toFixed(1));
   set('res-n2', state.inventory.n2.toFixed(1));
-  set('res-h2so4', state.inventory.h2so4.toFixed(1));
+  set('res-h2so4', formatH2so4Amount(state.inventory.h2so4));
   set('res-h2', state.inventory.h2.toFixed(1));
   set('res-o2', state.inventory.o2.toFixed(1));
   const o2FlowEl = document.getElementById('res-o2-flow');

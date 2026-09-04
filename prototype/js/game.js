@@ -551,11 +551,54 @@ export function getO2Flow(state) {
   return { produce, consume, net: produce - consume };
 }
 
-/** What the ISRU chain is blocked on (for HUD). Acid shortage takes priority over fallback electrolysis. */
+/**
+ * What the ISRU chain is blocked on (for HUD). §4.2
+ * Acid batch ready first; when H₂SO₄ < 1 but Bosch can run, show boschReady (not acid-wait).
+ */
 export function analyzeIsruBottleneck(inventory) {
-  if (inventory.h2so4 >= 1) return 'acidReady';
-  if (inventory.h2so4 < 1) return 'waitingAcid';
-  return 'idle';
+  const h2so4 = inventory.h2so4 ?? 0;
+  if (h2so4 >= 1) return 'acidReady';
+  const h2Spendable = (inventory.h2 ?? 0) - H2_BOSCH_RESERVE;
+  const co2 = inventory.co2 ?? 0;
+  if (co2 >= 1 && h2Spendable >= 1) return 'boschReady';
+  if (co2 >= 1 && h2Spendable < 1) return 'electrolyzing';
+  return 'waitingAcid';
+}
+
+/** Extra intake modules beyond CORE (§6.3). */
+export function countExtraIntakeModules(modules) {
+  let count = 0;
+  for (const mod of modules.values()) {
+    if (mod.type === 'intake') count++;
+  }
+  return count;
+}
+
+/** Intake build hint when waiting on acid — only if no extra intake exists yet (§6.3 / §6.2 / §8). */
+export function getIntakeAccelHint(state) {
+  if (countExtraIntakeModules(state.modules) > 0) return null;
+
+  const cost = MODULE_TYPES.intake.cost;
+  if (!cost) return null;
+  if (canAfford(state.inventory, cost)) {
+    return t('isru.intakeHintAffordable');
+  }
+
+  const missing = getMissingMaterials(state.inventory, cost);
+  if (missing.length === 0) return null;
+
+  const ids = new Set(missing.map((m) => m.id));
+  if (ids.has('iron')) return t('isru.intakeHintFeShort');
+  if (ids.has('carbon')) return t('isru.intakeHintCarbonShort');
+  if (ids.has('sulfur')) return t('isru.intakeHintSulfurShort');
+  return null;
+}
+
+/** H₂SO₄ display: finer precision below 1 t so HUD matches the acid progress bar (§4.2 / §5.1). */
+export function formatH2so4Amount(amount) {
+  const n = amount ?? 0;
+  if (n < 1) return n.toFixed(3);
+  return n.toFixed(1);
 }
 
 function processIsru(inventory, isruCount, powerNet, prevWaitStatus) {
@@ -628,20 +671,21 @@ export function getIsruStatusDetail(state) {
   const stats = computeStats(state);
   if (stats.isruCount <= 0 || stats.powerNet < 0) return null;
 
-  const status = state.isruWaitStatus ?? analyzeIsruBottleneck(state.inventory);
-  if (status !== 'waitingAcid') return null;
+  const h2so4 = state.inventory.h2so4 ?? 0;
+  if (h2so4 >= 1) return null;
 
   const acid = getAcidWaitInfo(state);
   const lines = [];
-  const pct = Math.round(acid.progress * 100);
+  const pct = acid.progress < 0.01
+    ? (Math.round(acid.progress * 1000) / 10)
+    : Math.round(acid.progress * 100);
   if (acid.etaTicks != null) {
     lines.push(t('isru.acidProgress', { pct, eta: acid.etaTicks }));
   } else {
     lines.push(t('isru.acidProgressNoEta', { pct }));
   }
-  if (acid.intakeUnits <= 1) {
-    lines.push(t('isru.intakeHint'));
-  }
+  const intakeHint = getIntakeAccelHint(state);
+  if (intakeHint) lines.push(intakeHint);
   if (acid.fallbackElectrolysis) {
     lines.push(t('isru.fallbackElectrolysis'));
   }
