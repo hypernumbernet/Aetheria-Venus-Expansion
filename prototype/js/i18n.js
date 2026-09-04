@@ -129,6 +129,9 @@ const STRINGS = {
       buildPowerGen: '+{gen} power',
       buildPowerUse: '−{use} power',
       buildPowerNetAfter: 'net after {net}',
+      buildMaterialShort: 'Need: {detail}',
+      sulfurUpkeep: 'S upkeep −{amount}/tick (corrosion control)',
+      corrosionWorst: 'worst {max}% · {count} penalized',
       sulfurExportHint: '→ Export S in Inventory',
       creditsExportHint: 'Earn via sulfur export',
       tickRate: '1 tick / second',
@@ -247,6 +250,7 @@ const STRINGS = {
       corrosionWarn: 'Acid corrosion rising — sulfur coating slows damage (select unit → Coating).',
       corrosionSevere: 'Severe corrosion — power drain and lift loss worsening. Coat modules or spend S on upkeep.',
       corrosionCritical: 'Critical corrosion — efficiency heavily reduced. Apply sulfur coating now.',
+      sUpkeepActive: 'Sulfur upkeep active — {amount}/tick spent slowing corrosion on {count} modules.',
     },
     isru: {
       status: {
@@ -318,6 +322,9 @@ const STRINGS = {
       buildPowerGen: '+{gen} 電力',
       buildPowerUse: '−{use} 電力',
       buildPowerNetAfter: '配置後 {net}',
+      buildMaterialShort: '不足: {detail}',
+      sulfurUpkeep: 'S維持 −{amount}/tick（腐食抑制）',
+      corrosionWorst: '最大 {max}%・ペナルティ {count} 基',
       sulfurExportHint: '→ 在庫で地球へ輸出',
       creditsExportHint: '硫黄の輸出で獲得',
       tickRate: '1秒 = 1ティック',
@@ -355,7 +362,7 @@ const STRINGS = {
     },
     tick: 'ティック {n}',
     selected: '{name}（{coords}）\n床面積: {floorArea}\n腐食: {corrosion}%',
-    selectedCorrosionEffects: '腐食影: 電力 +{power}・質量 +{mass}・浮力 −{lift}',
+    selectedCorrosionEffects: '腐食影響: 電力 +{power}・質量 +{mass}・浮力 −{lift}',
     selectedH2Cell: '{name}（{coords}）\n床面積: {floorArea}\nH₂層: {layers} | 腐食: {corrosion}%',
     module: {
       core: 'コア居住域',
@@ -436,6 +443,7 @@ const STRINGS = {
       corrosionWarn: '酸性腐食が進行 — 硫黄コーティングで上昇を抑えられます（ユニット選択→コーティング）。',
       corrosionSevere: '腐食深刻 — 電力消費・浮力低下が悪化。コーティングまたは S 維持を。',
       corrosionCritical: '腐食危険域 — 効率が大きく低下。今すぐ硫黄コーティングを。',
+      sUpkeepActive: '硫黄維持中 — {amount}/tick を {count} 基の腐食抑制に消費。',
     },
     isru: {
       status: {

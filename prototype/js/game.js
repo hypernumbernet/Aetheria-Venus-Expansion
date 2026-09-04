@@ -125,7 +125,9 @@ export const INVENTORY_CARGO_MASS_IDS = [
 const COATING_S_COST = 1;
 const COATING_CORROSION_REDUCE = 25;
 const COATING_SLOW_TICKS = 20;
-const COATING_MAINTENANCE_S_PER_TICK = 0.05;
+export const COATING_MAINTENANCE_S_PER_TICK = 0.05;
+/** §9 — modules above this % may trigger automatic S upkeep when stock allows. */
+export const CORROSION_MAINTENANCE_THRESHOLD = 10;
 const CORROSION_RISE = 0.3;
 const CORROSION_RISE_COATED = 0.1;
 const CORROSION_RISE_MAINTAINED = 0.15;
@@ -205,6 +207,7 @@ export function createInitialState(difficulty = 'normal') {
     gameOver: false,
     isruWaitStatus: 'noIsru',
     corrosionWarnLevel: 0,
+    sUpkeepActive: false,
   };
 }
 
@@ -555,6 +558,40 @@ export function getCorrosionWarnLevel(modules) {
     else if (c >= CORROSION_WARN_THRESHOLD) level = Math.max(level, 1);
   }
   return level;
+}
+
+/** §9 — aggregate corrosion stats for sidebar (avg shown elsewhere; worst + penalty count). */
+export function getCorrosionSummary(modules) {
+  let max = 0;
+  let penaltyCount = 0;
+  let sum = 0;
+  const size = modules.size;
+  for (const mod of modules.values()) {
+    const c = mod.corrosion ?? 0;
+    sum += c;
+    if (c > max) max = c;
+    if (hasCorrosionPenalties(c)) penaltyCount += 1;
+  }
+  return {
+    avg: size > 0 ? sum / size : 0,
+    max,
+    penaltyCount,
+  };
+}
+
+/** §9 — whether automatic S upkeep is draining sulfur this tick. */
+export function getCorrosionMaintenanceInfo(state) {
+  let corrodedCount = 0;
+  for (const mod of state.modules.values()) {
+    if ((mod.corrosion ?? 0) > CORROSION_MAINTENANCE_THRESHOLD) corrodedCount += 1;
+  }
+  const sulfur = state.inventory.sulfur ?? 0;
+  const active = corrodedCount > 0 && sulfur > 1;
+  return {
+    active,
+    corrodedCount,
+    sPerTick: COATING_MAINTENANCE_S_PER_TICK,
+  };
 }
 
 function isModuleGraphConnected(modules, coreKey) {
@@ -953,9 +990,11 @@ export function gameTick(state) {
 
   // Corrosion tick (§9 — S coating slows rise)
   let maintenanceSpent = false;
-  const corrodedModules = [...modules.values()].filter((m) => m.corrosion > 10).length;
+  const corrodedModules = [...modules.values()]
+    .filter((m) => (m.corrosion ?? 0) > CORROSION_MAINTENANCE_THRESHOLD).length;
   const canMaintain = corrodedModules > 0
     && (inventory.sulfur ?? 0) > 1;
+  const sUpkeepActive = canMaintain;
 
   for (const [key, mod] of modules) {
     let rise = CORROSION_RISE + windCorrosionExtra;
@@ -964,7 +1003,7 @@ export function gameTick(state) {
     if (coatedTicks > 0) {
       rise = CORROSION_RISE_COATED;
       coatedTicks -= 1;
-    } else if (canMaintain && mod.corrosion > 10) {
+    } else if (canMaintain && (mod.corrosion ?? 0) > CORROSION_MAINTENANCE_THRESHOLD) {
       rise = CORROSION_RISE_MAINTAINED;
       if (!maintenanceSpent) {
         inventory = {
@@ -995,6 +1034,15 @@ export function gameTick(state) {
     } else {
       events.push(t('msg.corrosionWarn'));
     }
+  }
+
+  // §9 — one-time toast when automatic S upkeep begins (not every tick)
+  const prevSUpkeep = state.sUpkeepActive ?? false;
+  if (sUpkeepActive && !prevSUpkeep) {
+    events.push(t('msg.sUpkeepActive', {
+      amount: COATING_MAINTENANCE_S_PER_TICK,
+      count: corrodedModules,
+    }));
   }
 
   // Sink countdown
@@ -1030,6 +1078,7 @@ export function gameTick(state) {
     gameOver,
     isruWaitStatus,
     corrosionWarnLevel,
+    sUpkeepActive,
   };
 }
 
