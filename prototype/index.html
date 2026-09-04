@@ -36,7 +36,15 @@
             <div><dt data-i18n="panel.windLoad">風荷重</dt><dd id="stat-wind">—</dd></div>
             <div><dt data-i18n="panel.corrosion">腐食</dt><dd id="stat-corrosion">—</dd></div>
             <div><dt data-i18n="panel.difficulty">難易度</dt><dd id="stat-difficulty">—</dd></div>
-            <div><dt data-i18n="panel.isruStatus">ISRU状態</dt><dd id="stat-isru">—</dd></div>
+            <div><dt data-i18n="panel.isruStatus">ISRU状態</dt>
+              <dd class="isru-status-cell">
+                <span id="stat-isru">—</span>
+                <div id="acid-progress-wrap" class="acid-progress-wrap" hidden aria-hidden="true">
+                  <div id="acid-progress-bar" class="acid-progress-bar"></div>
+                </div>
+                <div id="stat-isru-detail" class="isru-detail" hidden></div>
+              </dd>
+            </div>
           </dl>
         </section>
 
@@ -48,7 +56,13 @@
             <div><dt>N₂</dt><dd id="res-n2">—</dd></div>
             <div><dt>H₂SO₄</dt><dd id="res-h2so4">—</dd></div>
             <div><dt>H₂</dt><dd id="res-h2">—</dd></div>
-            <div><dt>O₂</dt><dd id="res-o2">—</dd></div>
+            <div class="resource-o2">
+              <dt>O₂</dt>
+              <dd>
+                <span id="res-o2">—</span>
+                <span id="res-o2-flow" class="resource-flow" hidden></span>
+              </dd>
+            </div>
             <div><dt>H₂O</dt><dd id="res-h2o">—</dd></div>
             <div><dt data-i18n="panel.sulfur">硫黄</dt><dd id="res-sulfur">—</dd></div>
             <div><dt data-i18n="panel.iron">鉄</dt><dd id="res-iron">—</dd></div>
@@ -134,6 +148,7 @@
       <button id="btn-close-inventory" type="button" class="dialog-close" data-i18n-aria="inventory.close" aria-label="閉じる">×</button>
     </div>
     <p class="dialog-intro" data-i18n="inventory.intro">建設には在庫の材料が必要です。クレジットで地球市場から購入できます（定期援助とは別）。</p>
+    <p class="dialog-intro inventory-pause-notice" data-i18n="inventory.pauseNotice">開いている間は時間が進みません（ティック停止）。</p>
     <p class="dialog-intro earth-trade-intro" data-i18n="inventory.earthTradeIntro">金星産物を地球へ輸出してクレジットを獲得できます（ユニット選択不要）。</p>
     <div id="inventory-list" class="inventory-list"></div>
   </dialog>
