@@ -130,8 +130,10 @@ const CORROSION_RISE = 0.3;
 const CORROSION_RISE_COATED = 0.1;
 const CORROSION_RISE_MAINTAINED = 0.15;
 
+/** §4.2 — CO₂ electrolysis O₂ yield per ISRU per tick (fallback when acid/Bosch unavailable). */
+export const O2_ELECTROLYSIS_YIELD = 0.1;
 /** §4.2 / §7.1 — CORE life-support draws O₂ each tick so electrolysis byproduct does not pile into cargo mass. */
-const O2_LIFE_SUPPORT_SINK = 0.7;
+export const O2_LIFE_SUPPORT_SINK = 0.7;
 /** §7.3 — spend C to lighten a module (mass↓, lift↑). */
 export const C_LIGHTEN_COST = 1;
 const C_LIGHTEN_MASS_REDUCE = 2;
@@ -505,13 +507,53 @@ function applyIntake(inventory, intakeUnits) {
  * @typedef {'noIsru' | 'noPower' | 'acidReady' | 'boschReady' | 'waitingAcid' | 'waitingH2' | 'electrolyzing' | 'idle'} IsruWaitStatus
  */
 
-/** What the ISRU chain is blocked on (for HUD). Mirrors processIsru priority. */
+/** H₂SO₄ intake per tick from CORE + intake modules (§5.1). */
+export function getAcidIntakePerTick(intakeUnits) {
+  return CORE_INTAKE_RATES.h2so4 * intakeUnits;
+}
+
+/** Acid accumulation toward next 1t batch (§5.1 / §4.2). */
+export function getAcidWaitInfo(state) {
+  const stats = computeStats(state);
+  const h2so4 = state.inventory.h2so4 ?? 0;
+  const rate = getAcidIntakePerTick(stats.intakeUnits);
+  const progress = Math.min(1, Math.max(0, h2so4));
+  const etaTicks = rate > 0 ? Math.ceil((1 - progress) / rate) : null;
+  const h2 = state.inventory.h2 ?? 0;
+  const h2Spendable = h2 - H2_BOSCH_RESERVE;
+  const fallbackElectrolysis = stats.isruCount > 0
+    && stats.powerNet >= 0
+    && h2so4 < 1
+    && (state.inventory.co2 ?? 0) >= 1
+    && h2Spendable < 1;
+  return {
+    progress,
+    rate,
+    etaTicks,
+    intakeUnits: stats.intakeUnits,
+    fallbackElectrolysis,
+  };
+}
+
+/** O₂ production vs CORE life-support consumption per tick (§4.2). */
+export function getO2Flow(state) {
+  const stats = computeStats(state);
+  const inv = state.inventory;
+  let produce = 0;
+  if (stats.isruCount > 0 && stats.powerNet >= 0 && (inv.co2 ?? 0) >= 1) {
+    const h2Spendable = (inv.h2 ?? 0) - H2_BOSCH_RESERVE;
+    const wouldElectrolyze = (inv.h2so4 ?? 0) < 1 && h2Spendable < 1;
+    if (wouldElectrolyze) {
+      produce = O2_ELECTROLYSIS_YIELD * stats.isruCount;
+    }
+  }
+  const consume = hasCoreModule(state.modules) ? O2_LIFE_SUPPORT_SINK : 0;
+  return { produce, consume, net: produce - consume };
+}
+
+/** What the ISRU chain is blocked on (for HUD). Acid shortage takes priority over fallback electrolysis. */
 export function analyzeIsruBottleneck(inventory) {
   if (inventory.h2so4 >= 1) return 'acidReady';
-  const h2 = inventory.h2 ?? 0;
-  const h2Spendable = h2 - H2_BOSCH_RESERVE;
-  if (inventory.co2 >= 1 && h2Spendable >= 1) return 'boschReady';
-  if (inventory.co2 >= 1) return 'electrolyzing';
   if (inventory.h2so4 < 1) return 'waitingAcid';
   return 'idle';
 }
@@ -550,7 +592,7 @@ function processIsru(inventory, isruCount, powerNet, prevWaitStatus) {
     }
     if (inv.co2 >= 1) {
       inv.co2 -= 1;
-      inv.o2 = (inv.o2 ?? 0) + 0.1;
+      inv.o2 = (inv.o2 ?? 0) + O2_ELECTROLYSIS_YIELD;
     }
   }
 
@@ -579,6 +621,31 @@ export function getIsruStatusLabel(state) {
   if (stats.powerNet < 0) return t('isru.status.noPower');
   const status = state.isruWaitStatus ?? analyzeIsruBottleneck(state.inventory);
   return t(`isru.status.${status}`);
+}
+
+/** Secondary ISRU HUD lines (acid progress, intake hint, fallback electrolysis). */
+export function getIsruStatusDetail(state) {
+  const stats = computeStats(state);
+  if (stats.isruCount <= 0 || stats.powerNet < 0) return null;
+
+  const status = state.isruWaitStatus ?? analyzeIsruBottleneck(state.inventory);
+  if (status !== 'waitingAcid') return null;
+
+  const acid = getAcidWaitInfo(state);
+  const lines = [];
+  const pct = Math.round(acid.progress * 100);
+  if (acid.etaTicks != null) {
+    lines.push(t('isru.acidProgress', { pct, eta: acid.etaTicks }));
+  } else {
+    lines.push(t('isru.acidProgressNoEta', { pct }));
+  }
+  if (acid.intakeUnits <= 1) {
+    lines.push(t('isru.intakeHint'));
+  }
+  if (acid.fallbackElectrolysis) {
+    lines.push(t('isru.fallbackElectrolysis'));
+  }
+  return lines.join('\n');
 }
 
 function hasCoreModule(modules) {

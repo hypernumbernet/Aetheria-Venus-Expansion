@@ -22,6 +22,9 @@ import {
   formatBuildCost,
   getModuleName,
   getIsruStatusLabel,
+  getIsruStatusDetail,
+  getAcidWaitInfo,
+  getO2Flow,
   H2_EXTEND_COST,
   COATING_S_COST,
   C_LIGHTEN_COST,
@@ -258,10 +261,27 @@ function updateUI() {
   set('stat-difficulty', t(`difficulty.${state.difficulty}`));
 
   const isruStatusEl = document.getElementById('stat-isru');
+  const isruDetailEl = document.getElementById('stat-isru-detail');
+  const acidProgressWrap = document.getElementById('acid-progress-wrap');
+  const acidProgressBar = document.getElementById('acid-progress-bar');
   if (isruStatusEl) {
     isruStatusEl.textContent = getIsruStatusLabel(state);
     const status = state.isruWaitStatus ?? 'noIsru';
     isruStatusEl.className = ['waitingAcid', 'waitingH2', 'noPower'].includes(status) ? 'warning' : '';
+  }
+  if (isruDetailEl) {
+    const detail = getIsruStatusDetail(state);
+    isruDetailEl.textContent = detail ?? '';
+    isruDetailEl.hidden = !detail;
+  }
+  if (acidProgressWrap && acidProgressBar) {
+    const acid = getAcidWaitInfo(state);
+    const showAcid = (state.isruWaitStatus === 'waitingAcid')
+      && computeStats(state).isruCount > 0;
+    acidProgressWrap.hidden = !showAcid;
+    if (showAcid) {
+      acidProgressBar.style.width = `${Math.round(acid.progress * 100)}%`;
+    }
   }
 
   set('res-co2', state.inventory.co2.toFixed(1));
@@ -270,6 +290,19 @@ function updateUI() {
   set('res-h2so4', state.inventory.h2so4.toFixed(1));
   set('res-h2', state.inventory.h2.toFixed(1));
   set('res-o2', state.inventory.o2.toFixed(1));
+  const o2FlowEl = document.getElementById('res-o2-flow');
+  if (o2FlowEl) {
+    const flow = getO2Flow(state);
+    if (flow.consume > 0) {
+      o2FlowEl.textContent = t('panel.o2Flow', {
+        produce: flow.produce.toFixed(1),
+        consume: flow.consume.toFixed(1),
+      });
+      o2FlowEl.hidden = false;
+    } else {
+      o2FlowEl.hidden = true;
+    }
+  }
   set('res-h2o', state.inventory.h2o.toFixed(1));
   set('res-sulfur', state.inventory.sulfur.toFixed(1));
   set('res-iron', state.inventory.iron.toFixed(1));
@@ -286,13 +319,20 @@ function updateUI() {
   if (sel && state.modules.has(sel)) {
     const mod = state.modules.get(sel);
     const isH2Cell = mod.type === 'h2cell';
-    info.textContent = t('selected', {
-      name: getModuleName(mod.type),
-      coords: sel,
-      floorArea: t('unit.floorArea'),
-      layers: mod.h2Layers,
-      corrosion: mod.corrosion.toFixed(0),
-    });
+    info.textContent = isH2Cell
+      ? t('selectedH2Cell', {
+        name: getModuleName(mod.type),
+        coords: sel,
+        floorArea: t('unit.floorArea'),
+        layers: mod.h2Layers,
+        corrosion: mod.corrosion.toFixed(0),
+      })
+      : t('selected', {
+        name: getModuleName(mod.type),
+        coords: sel,
+        floorArea: t('unit.floorArea'),
+        corrosion: mod.corrosion.toFixed(0),
+      });
     if (h2Actions) h2Actions.hidden = !isH2Cell;
     if (isH2Cell) {
       extendBtn.disabled = state.gameOver || state.inventory.h2 < H2_EXTEND_COST || mod.h2Layers >= 4;
