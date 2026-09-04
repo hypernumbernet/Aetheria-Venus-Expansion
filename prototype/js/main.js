@@ -25,6 +25,7 @@ import {
   H2_EXTEND_COST,
   COATING_S_COST,
   C_LIGHTEN_COST,
+  TRADE_SULFUR_COST,
   SINK_COUNTDOWN_MAX,
   SINK_WARNING_AT,
 } from './game.js';
@@ -200,6 +201,24 @@ function renderInventoryList() {
         }
       });
       actions.appendChild(buyBtn);
+    } else if (id === 'sulfur') {
+      const exportBtn = document.createElement('button');
+      exportBtn.type = 'button';
+      exportBtn.className = 'export-btn';
+      exportBtn.textContent = t('inventory.exportSulfur', { cost: TRADE_SULFUR_COST });
+      exportBtn.disabled = state.gameOver || (state.inventory.sulfur ?? 0) < TRADE_SULFUR_COST;
+      exportBtn.addEventListener('click', () => {
+        const result = tradeWithEarth(state);
+        if (result.ok) {
+          state = result.state;
+          showToast(result.message);
+          renderInventoryList();
+          draw();
+        } else {
+          showToast(result.reason);
+        }
+      });
+      actions.appendChild(exportBtn);
     } else if (id === 'credits') {
       const hint = document.createElement('span');
       hint.className = 'inventory-hint';
@@ -260,11 +279,13 @@ function updateUI() {
 
   const sel = state.selectedHex;
   const info = document.getElementById('selected-info');
+  const h2Actions = document.getElementById('h2-actions');
   const extendBtn = document.getElementById('btn-extend-h2');
   const lowerBtn = document.getElementById('btn-lower-h2');
   const coatingBtn = document.getElementById('btn-apply-coating');
   if (sel && state.modules.has(sel)) {
     const mod = state.modules.get(sel);
+    const isH2Cell = mod.type === 'h2cell';
     info.textContent = t('selected', {
       name: getModuleName(mod.type),
       coords: sel,
@@ -272,9 +293,12 @@ function updateUI() {
       layers: mod.h2Layers,
       corrosion: mod.corrosion.toFixed(0),
     });
-    extendBtn.disabled = state.gameOver || state.inventory.h2 < H2_EXTEND_COST || mod.h2Layers >= 4;
-    if (lowerBtn) {
-      lowerBtn.disabled = state.gameOver || mod.h2Layers <= 1;
+    if (h2Actions) h2Actions.hidden = !isH2Cell;
+    if (isH2Cell) {
+      extendBtn.disabled = state.gameOver || state.inventory.h2 < H2_EXTEND_COST || mod.h2Layers >= 4;
+      if (lowerBtn) {
+        lowerBtn.disabled = state.gameOver || mod.h2Layers <= 1;
+      }
     }
     coatingBtn.disabled = state.gameOver
       || (state.inventory.sulfur ?? 0) < COATING_S_COST
@@ -287,6 +311,7 @@ function updateUI() {
     }
   } else {
     info.textContent = t('panel.selectedNone');
+    if (h2Actions) h2Actions.hidden = true;
     extendBtn.disabled = true;
     if (lowerBtn) lowerBtn.disabled = true;
     coatingBtn.disabled = true;
@@ -301,6 +326,18 @@ function updateUI() {
   if (inventoryBtn) {
     inventoryBtn.disabled = state.gameOver;
   }
+
+  const buildHint = document.getElementById('build-hint');
+  const cancelBuildBtn = document.getElementById('btn-cancel-build');
+  if (buildHint) {
+    buildHint.textContent = state.selectedBuild
+      ? t('panel.buildHintActive')
+      : t('panel.buildHint');
+  }
+  if (cancelBuildBtn) {
+    cancelBuildBtn.hidden = !state.selectedBuild;
+    cancelBuildBtn.disabled = state.gameOver;
+  }
 }
 
 function buildButtons() {
@@ -314,7 +351,8 @@ function buildButtons() {
     btn.disabled = state.gameOver;
     btn.innerHTML = `<span class="swatch" style="background:${def.color}"></span><span><strong>${getModuleName(type)}</strong><br><small>${formatBuildCost(def.cost)}</small></span>`;
     btn.addEventListener('click', () => {
-      state = { ...state, selectedBuild: type };
+      const next = state.selectedBuild === type ? null : type;
+      state = { ...state, selectedBuild: next };
       buildButtons();
       draw();
     });
@@ -368,8 +406,10 @@ function draw() {
       const def = MODULE_TYPES[mod.type];
       drawHex(ctx, cx, cy, HEX_DRAW_RADIUS, def.color + '55', def.color, isSelected ? 2 : 1);
 
-      for (let layer = 1; layer < mod.h2Layers; layer++) {
-        drawHex(ctx, cx, cy - layer * 4, HEX_DRAW_RADIUS - 4 - layer * 2, null, '#a371f788', 1);
+      if (mod.type === 'h2cell') {
+        for (let layer = 1; layer < mod.h2Layers; layer++) {
+          drawHex(ctx, cx, cy - layer * 4, HEX_DRAW_RADIUS - 4 - layer * 2, null, '#a371f788', 1);
+        }
       }
 
       if (mod.corrosion > 20) {
@@ -563,17 +603,8 @@ document.getElementById('btn-carbon-lighten').addEventListener('click', () => {
   draw();
 });
 
-document.getElementById('btn-trade').addEventListener('click', () => {
-  if (!state) return;
-  const result = tradeWithEarth(state);
-  if (result.ok) {
-    state = result.state;
-    showToast(result.message);
-    if (inventoryDialog.open) renderInventoryList();
-  } else {
-    showToast(result.reason);
-  }
-  draw();
+document.getElementById('btn-cancel-build')?.addEventListener('click', () => {
+  cancelConstructionMode();
 });
 
 document.getElementById('btn-settings').addEventListener('click', () => {

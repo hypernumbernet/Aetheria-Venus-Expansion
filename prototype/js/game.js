@@ -319,6 +319,9 @@ export function extendH2(state, key) {
 
   const mod = state.modules.get(key);
   if (!mod) return { ok: false, reason: t('msg.noModuleSelected') };
+  if (mod.type !== 'h2cell') {
+    return { ok: false, reason: t('msg.h2CellOnly') };
+  }
   if (state.inventory.h2 < H2_EXTEND_COST) {
     return { ok: false, reason: t('msg.needH2Extend', { amount: H2_EXTEND_COST }) };
   }
@@ -342,6 +345,9 @@ export function lowerH2(state, key) {
 
   const mod = state.modules.get(key);
   if (!mod) return { ok: false, reason: t('msg.noModuleSelected') };
+  if (mod.type !== 'h2cell') {
+    return { ok: false, reason: t('msg.h2CellOnly') };
+  }
   if (mod.h2Layers <= 1) {
     return { ok: false, reason: t('msg.h2MinHeight') };
   }
@@ -448,15 +454,17 @@ export function computeStats(state) {
     const def = MODULE_TYPES[mod.type];
     const lighten = mod.carbonLighten ?? 0;
     moduleMass += def.mass - lighten * C_LIGHTEN_MASS_REDUCE;
-    buoyancy += def.baseBuoyancy + (mod.h2Layers - 1) * H2_EXTEND_BUOYANCY
-      + lighten * C_LIGHTEN_BUOYANCY;
+    const h2LayerBonus = mod.type === 'h2cell' ? (mod.h2Layers - 1) * H2_EXTEND_BUOYANCY : 0;
+    buoyancy += def.baseBuoyancy + h2LayerBonus + lighten * C_LIGHTEN_BUOYANCY;
     powerGen += def.powerGen;
     powerUse += def.powerUse;
     intakeUnits += def.intake ?? 0;
     if (def.baseWindLoad) {
       windLoad += def.baseWindLoad;
     }
-    windLoad += (mod.h2Layers - 1) * H2_EXTEND_WIND;
+    if (mod.type === 'h2cell') {
+      windLoad += (mod.h2Layers - 1) * H2_EXTEND_WIND;
+    }
     corrosion += mod.corrosion;
     if (mod.type === 'isru') isruCount++;
   }
@@ -503,9 +511,8 @@ export function analyzeIsruBottleneck(inventory) {
   const h2 = inventory.h2 ?? 0;
   const h2Spendable = h2 - H2_BOSCH_RESERVE;
   if (inventory.co2 >= 1 && h2Spendable >= 1) return 'boschReady';
-  if (inventory.co2 >= 1 && h2 < H2_BOSCH_RESERVE + 1) return 'waitingH2';
-  if (inventory.h2so4 < 1) return 'waitingAcid';
   if (inventory.co2 >= 1) return 'electrolyzing';
+  if (inventory.h2so4 < 1) return 'waitingAcid';
   return 'idle';
 }
 
@@ -558,10 +565,7 @@ function processIsru(inventory, isruCount, powerNet, prevWaitStatus) {
   if (waitStatus === 'waitingAcid' && prevWaitStatus !== 'waitingAcid' && prevWaitStatus !== 'noIsru') {
     events.push(t('msg.isruWaitingAcid'));
   }
-  if (waitStatus === 'waitingH2' && prevWaitStatus !== 'waitingH2') {
-    events.push(t('msg.isruWaitingH2'));
-  }
-  if (waitStatus === 'waitingH2' && prevWaitStatus === 'boschReady') {
+  if (waitStatus === 'electrolyzing' && prevWaitStatus === 'boschReady') {
     events.push(t('msg.isruH2Reserve'));
   }
 

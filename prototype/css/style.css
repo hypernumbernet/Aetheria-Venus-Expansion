@@ -480,6 +480,44 @@ body {
   cursor: not-allowed;
 }
 
+.export-btn {
+  padding: 0.3rem 0.65rem;
+  background: var(--amber);
+  border: none;
+  border-radius: 4px;
+  color: #0d1117;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.export-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.export-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cancel-build-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.h2-actions:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.earth-trade-intro {
+  margin-top: -0.25rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
 .inventory-hint {
   font-size: 0.72rem;
   color: var(--text-muted);
