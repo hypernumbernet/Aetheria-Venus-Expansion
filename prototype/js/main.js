@@ -357,8 +357,6 @@ function updateUI() {
       corrosionDetailEl.hidden = true;
     }
   }
-  set('stat-difficulty', t(`difficulty.${state.difficulty}`));
-
   const isruStatusEl = document.getElementById('stat-isru');
   const isruDetailEl = document.getElementById('stat-isru-detail');
   const acidProgressWrap = document.getElementById('acid-progress-wrap');
@@ -400,27 +398,17 @@ function updateUI() {
     }
   }
 
-  const ironAidHintEl = document.getElementById('iron-aid-hint');
-  if (ironAidHintEl) {
-    const aid = getEarthAidEta(state);
-    const showIronHint = aid.enabled && (state.inventory.iron ?? 0) < 1;
-    if (showIronHint) {
-      ironAidHintEl.textContent = t('panel.earthAidEta', {
-        eta: aid.etaTicks,
-        h2o: aid.amounts.h2o,
-        iron: aid.amounts.iron,
-      });
-      ironAidHintEl.hidden = false;
-    } else {
-      ironAidHintEl.hidden = true;
-    }
-  }
-
-  const sulfurExportWaitEl = document.getElementById('sulfur-export-wait');
-  if (sulfurExportWaitEl) {
+  const inventoryExportCue = document.getElementById('inventory-export-cue');
+  if (inventoryExportCue) {
     const sulfurShort = (state.inventory.sulfur ?? 0) < TRADE_SULFUR_COST;
-    sulfurExportWaitEl.textContent = t('panel.sulfurExportWait');
-    sulfurExportWaitEl.hidden = !sulfurShort;
+    if (sulfurShort) {
+      inventoryExportCue.textContent = t('panel.sulfurExportWait');
+      inventoryExportCue.hidden = false;
+      inventoryExportCue.classList.add('clickable');
+    } else {
+      inventoryExportCue.hidden = true;
+      inventoryExportCue.classList.remove('clickable');
+    }
   }
 
   set('res-co2', state.inventory.co2.toFixed(1));
@@ -461,16 +449,22 @@ function updateUI() {
 
   const sel = state.selectedHex;
   const info = document.getElementById('selected-info');
+  const mapActionDock = document.getElementById('map-action-dock');
+  const selectionActions = document.getElementById('selection-actions');
   const h2Actions = document.getElementById('h2-actions');
   const extendBtn = document.getElementById('btn-extend-h2');
   const lowerBtn = document.getElementById('btn-lower-h2');
   const coatingBtn = document.getElementById('btn-apply-coating');
   const coatingHint = document.getElementById('coating-hint');
   const dismantleBtn = document.getElementById('btn-dismantle');
+  const lightenBtn = document.getElementById('btn-carbon-lighten');
   if (sel && state.modules.has(sel)) {
     const mod = state.modules.get(sel);
     const isH2Cell = mod.type === 'h2cell';
     info.textContent = formatSelectedInfo(mod, sel);
+    info.classList.add('has-selection');
+    if (mapActionDock) mapActionDock.hidden = false;
+    if (selectionActions) selectionActions.hidden = false;
     if (h2Actions) h2Actions.hidden = !isH2Cell;
     if (isH2Cell) {
       extendBtn.disabled = state.gameOver || state.inventory.h2 < H2_EXTEND_COST || mod.h2Layers >= 4;
@@ -490,22 +484,18 @@ function updateUI() {
     if (dismantleBtn) {
       dismantleBtn.disabled = state.gameOver || mod.type === 'core';
     }
-    const lightenBtn = document.getElementById('btn-carbon-lighten');
     if (lightenBtn) {
       lightenBtn.disabled = state.gameOver
         || (state.inventory.carbon ?? 0) < C_LIGHTEN_COST
         || (mod.carbonLighten ?? 0) >= 3;
     }
   } else {
-    info.textContent = t('panel.selectedNone');
+    info.textContent = '';
+    info.classList.remove('has-selection');
+    if (mapActionDock) mapActionDock.hidden = true;
+    if (selectionActions) selectionActions.hidden = true;
     if (h2Actions) h2Actions.hidden = true;
-    extendBtn.disabled = true;
-    if (lowerBtn) lowerBtn.disabled = true;
-    coatingBtn.disabled = true;
-    const lightenBtn = document.getElementById('btn-carbon-lighten');
-    if (lightenBtn) lightenBtn.disabled = true;
     if (coatingHint) coatingHint.hidden = true;
-    if (dismantleBtn) dismantleBtn.disabled = true;
   }
 
   updateSinkWarning();
@@ -516,21 +506,40 @@ function updateUI() {
     inventoryBtn.disabled = state.gameOver;
   }
 
-  const sulfurExportHint = document.getElementById('btn-sulfur-export-hint');
-  if (sulfurExportHint) {
-    sulfurExportHint.disabled = state.gameOver;
-  }
-
   const buildHint = document.getElementById('build-hint');
   const cancelBuildBtn = document.getElementById('btn-cancel-build');
+  const buildModeBanner = document.getElementById('build-mode-banner');
+  const buildModeLabel = document.getElementById('build-mode-label');
+  const mapPanel = document.querySelector('.map-panel');
+  const mapBottomBar = document.querySelector('.map-bottom-bar');
   if (buildHint) {
-    buildHint.textContent = state.selectedBuild
-      ? t('panel.buildHintActive')
-      : t('panel.buildHint');
+    const hasShortage = ['intake', 'isru', 'solar', 'h2cell'].some((type) => {
+      const def = MODULE_TYPES[type];
+      return !canAfford(state.inventory, def.cost);
+    });
+    buildHint.hidden = !hasShortage;
+    buildHint.textContent = t('panel.buildHintShortage');
   }
   if (cancelBuildBtn) {
     cancelBuildBtn.hidden = !state.selectedBuild;
     cancelBuildBtn.disabled = state.gameOver;
+  }
+  if (buildModeBanner && buildModeLabel) {
+    if (state.selectedBuild) {
+      buildModeBanner.hidden = false;
+      buildModeLabel.textContent = t('panel.buildModeBanner', {
+        module: getModuleName(state.selectedBuild),
+      });
+      mapPanel?.classList.add('build-mode-active');
+    } else {
+      buildModeBanner.hidden = true;
+      mapPanel?.classList.remove('build-mode-active');
+    }
+  }
+  if (mapBottomBar) {
+    const showDock = !!(sel && state.modules.has(sel));
+    const showBuild = !!state.selectedBuild;
+    mapBottomBar.hidden = !showDock && !showBuild;
   }
 }
 
@@ -561,6 +570,11 @@ function formatBuildMissingLine(missing) {
   return t('panel.buildMaterialShort', { detail });
 }
 
+function formatBuildMissingShort(missing) {
+  if (!missing.length) return '';
+  return missing.map((m) => getMaterialName(m.id)).join(costSeparator());
+}
+
 function buildButtons() {
   if (!state) return;
   const container = document.getElementById('build-buttons');
@@ -570,15 +584,25 @@ function buildButtons() {
     const preview = getBuildPowerPreview(state, type);
     const affordable = canAfford(state.inventory, def.cost);
     const missing = affordable ? [] : getMissingMaterials(state.inventory, def.cost);
-    const powerClass = preview?.wouldDeficit ? ' build-power-preview warning' : ' build-power-preview';
     const powerLine = preview ? formatBuildPowerLine(preview) : '';
     const missingLine = formatBuildMissingLine(missing);
-    const missingClass = missingLine ? ' build-material-preview warning' : '';
+    const missingShort = formatBuildMissingShort(missing);
+    const tooltipParts = [];
+    if (missingLine) tooltipParts.push(missingLine);
+    if (powerLine) tooltipParts.push(powerLine);
+    const badges = [];
+    if (!affordable && missingShort) {
+      badges.push(`<span class="build-shortage-badge" title="${missingLine}">!</span>`);
+    }
+    if (preview?.wouldDeficit) {
+      badges.push(`<span class="build-power-badge" title="${powerLine}">⚡</span>`);
+    }
     const btn = document.createElement('button');
     btn.className = 'build-btn' + (state.selectedBuild === type ? ' active' : '')
       + (!affordable && !state.gameOver ? ' unaffordable' : '');
     btn.disabled = state.gameOver || !affordable;
-    btn.innerHTML = `<span class="swatch" style="background:${def.color}"></span><span><strong>${getModuleName(type)}</strong><br><small>${formatBuildCost(def.cost)}</small>${missingLine ? `<br><small class="${missingClass.trim()}">${missingLine}</small>` : ''}${powerLine ? `<br><small class="${powerClass.trim()}">${powerLine}</small>` : ''}</span>`;
+    if (tooltipParts.length) btn.title = tooltipParts.join('\n');
+    btn.innerHTML = `<span class="swatch" style="background:${def.color}"></span><span class="build-btn-label"><strong>${getModuleName(type)}</strong><small>${formatBuildCost(def.cost)}</small></span>${badges.length ? `<span class="build-btn-badges">${badges.join('')}</span>` : ''}`;
     btn.addEventListener('click', () => {
       if (!canAfford(state.inventory, def.cost)) return;
       const next = state.selectedBuild === type ? null : type;
@@ -883,9 +907,13 @@ document.querySelectorAll('input[name="locale"]').forEach((input) => {
 
 document.getElementById('btn-inventory').addEventListener('click', openInventory);
 
-document.getElementById('btn-sulfur-export-hint')?.addEventListener('click', () => {
+document.getElementById('inventory-export-cue')?.addEventListener('click', () => {
   if (!state || state.gameOver) return;
   openInventory();
+});
+
+document.getElementById('btn-cancel-build-map')?.addEventListener('click', () => {
+  cancelConstructionMode();
 });
 
 document.getElementById('btn-close-inventory').addEventListener('click', () => {
