@@ -133,6 +133,26 @@ body {
   border-top: 1px solid var(--border);
 }
 
+.map-bottom-bar.compact {
+  padding: 0.15rem 0.4rem 0.25rem;
+  gap: 0.15rem;
+}
+
+.map-bottom-bar.compact .selected-info-compact {
+  font-size: 0.66rem;
+}
+
+.map-bottom-bar.compact .selection-actions-inline .action-btn-compact {
+  padding: 0.22rem 0.35rem;
+  font-size: 0.62rem;
+  min-width: 5.5rem;
+}
+
+.map-bottom-bar.compact .build-mode-banner {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.68rem;
+}
+
 .map-bottom-bar[hidden] {
   display: none;
 }
@@ -193,24 +213,43 @@ body {
   cursor: crosshair;
 }
 
+.inventory-row-compact {
+  padding: 0.45rem 0.55rem;
+  gap: 0.15rem 0.5rem;
+}
+
+.inventory-row-compact .inventory-info strong {
+  font-size: 0.82rem;
+}
+
 .sidebar {
-  flex: 0 0 280px;
-  width: 280px;
+  flex: 0 0 320px;
+  width: 320px;
   display: flex;
   flex-direction: column;
   gap: 0;
   min-height: 0;
   align-self: stretch;
+  overflow: hidden;
 }
 
 .sidebar-scroll {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   padding-bottom: 0.25rem;
+}
+
+.sidebar-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow: hidden;
 }
 
 .panel-compact {
@@ -338,37 +377,72 @@ body {
   color: var(--amber);
 }
 
+.isru-summary-line {
+  font-size: 0.7rem;
+  color: var(--amber);
+  line-height: 1.35;
+  margin-top: 0.25rem;
+  text-align: right;
+}
+
+.isru-summary-line[hidden] {
+  display: none;
+}
+
+.stats dd.resource-short {
+  color: var(--amber);
+}
+
+.stats dd.resource-short::after {
+  content: ' !';
+  font-size: 0.75rem;
+  color: var(--red);
+}
+
 .build-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.3rem;
+  gap: 0.25rem;
+  overflow: hidden;
+  width: 100%;
 }
 
 .build-btn {
   display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.4rem;
+  align-items: flex-start;
+  gap: 0;
+  padding: 0.22rem 0.28rem;
   background: #21262d;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 5px;
   color: var(--text);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s, background 0.15s;
-  min-height: 2.4rem;
+  min-height: 1.95rem;
+  min-width: 0;
+  overflow: hidden;
+  border-left-width: 3px;
+}
+
+.build-btn-title {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  min-width: 0;
 }
 
 .build-btn-label {
   flex: 1;
   min-width: 0;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .build-btn-label strong {
   display: block;
-  font-size: 0.72rem;
+  font-size: 0.66rem;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -376,16 +450,17 @@ body {
 
 .build-btn-label small {
   display: block;
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 0.1rem;
 }
 
 .build-btn-badges {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
+  flex-direction: row;
   gap: 0.1rem;
   flex-shrink: 0;
 }
@@ -395,10 +470,11 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1rem;
-  height: 1rem;
+  min-width: 0.85rem;
+  height: 0.85rem;
+  padding: 0 0.1rem;
   border-radius: 3px;
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   font-weight: 700;
   line-height: 1;
 }
@@ -454,7 +530,31 @@ body {
 }
 
 .panel-build .hint {
+  margin-top: 0.25rem;
+}
+
+.build-legend {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.build-legend-icon.shortage {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.build-legend-icon.power {
+  color: var(--amber);
+}
+
+.buy-iron-btn {
   margin-top: 0.35rem;
+  margin-bottom: 0;
+  font-size: 0.72rem;
+  padding: 0.38rem 0.5rem;
 }
 
 .build-btn.unaffordable {
@@ -833,11 +933,30 @@ body {
   line-height: 1.5;
 }
 
+.inventory-purchase {
+  padding: 0.5rem 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.inventory-purchase .inventory-row {
+  margin: 0;
+}
+
 .inventory-list {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 1rem 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+}
+
+.inventory-list-heading {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin: 0.25rem 0 0;
 }
 
 .inventory-row {
