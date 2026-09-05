@@ -65,7 +65,8 @@
               </div>
               <div><dt data-i18n="panel.earthAid">地球定期援助</dt><dd id="stat-earth-aid">—</dd></div>
             </dl>
-            <details class="status-details">
+            <p id="isru-summary-line" class="isru-summary-line" hidden></p>
+            <details id="isru-details" class="status-details">
               <summary data-i18n="panel.isruDetails">ISRU・詳細</summary>
               <dl class="stats">
                 <div><dt data-i18n="panel.isruStatus">ISRU状態</dt>
@@ -93,16 +94,16 @@
                   <span id="sulfur-upkeep-hint" class="resource-flow" hidden></span>
                 </dd>
               </div>
+              <div><dt>C</dt><dd id="res-carbon">—</dd></div>
+              <div><dt>H₂</dt><dd id="res-h2">—</dd></div>
+              <div><dt>H₂SO₄</dt><dd id="res-h2so4">—</dd></div>
               <div><dt data-i18n="panel.earthCredits">地球クレジット</dt><dd id="res-credits">—</dd></div>
             </dl>
-            <details class="status-details">
+            <details id="other-resources-details" class="status-details">
               <summary data-i18n="panel.otherResources">その他の資源</summary>
               <dl class="stats">
                 <div><dt>CO₂</dt><dd id="res-co2">—</dd></div>
-                <div><dt>C</dt><dd id="res-carbon">—</dd></div>
                 <div><dt>N₂</dt><dd id="res-n2">—</dd></div>
-                <div><dt>H₂SO₄</dt><dd id="res-h2so4">—</dd></div>
-                <div><dt>H₂</dt><dd id="res-h2">—</dd></div>
                 <div class="resource-o2">
                   <dt>O₂</dt>
                   <dd>
@@ -113,12 +114,16 @@
               </dl>
             </details>
             <p id="inventory-export-cue" class="inventory-export-cue" hidden></p>
+            <button id="btn-buy-iron" type="button" class="action-btn secondary buy-iron-btn" data-i18n="panel.buyIron">Feを買う</button>
             <button id="btn-inventory" class="action-btn inventory-open-btn" data-i18n="panel.inventory">在庫・地球市場（輸出）</button>
           </section>
+        </div>
 
+        <div class="sidebar-footer">
           <section class="panel panel-compact panel-build">
             <h2 data-i18n="panel.buildModule">モジュール建設</h2>
             <div class="build-buttons" id="build-buttons"></div>
+            <p class="build-legend"><span class="build-legend-icon shortage">!</span> <span data-i18n="panel.buildLegendShortage">材料不足</span> <span class="build-legend-icon power">⚡</span> <span data-i18n="panel.buildLegendPower">電力不足</span></p>
             <p class="hint" id="build-hint" hidden data-i18n="panel.buildHint">浮遊大陸に隣接する空きユニットをクリック。</p>
             <button id="btn-cancel-build" type="button" class="action-btn secondary cancel-build-btn" hidden data-i18n="panel.cancelBuild">建設をキャンセル（Esc）</button>
           </section>
@@ -183,9 +188,8 @@
       <h2 data-i18n="inventory.title">在庫・地球市場</h2>
       <button id="btn-close-inventory" type="button" class="dialog-close" data-i18n-aria="inventory.close" aria-label="閉じる">×</button>
     </div>
-    <p class="dialog-intro" data-i18n="inventory.intro">建設には在庫の材料が必要です。クレジットで地球市場から購入できます（定期援助とは別）。</p>
-    <p class="dialog-intro inventory-pause-notice" data-i18n="inventory.pauseNotice">開いている間は時間が進みません（ティック停止）。</p>
-    <p class="dialog-intro earth-trade-intro" data-i18n="inventory.earthTradeIntro">金星産物を地球へ輸出してクレジットを獲得できます（ユニット選択不要）。</p>
+    <p class="dialog-intro" data-i18n="inventory.intro">Fe/H₂O を購入・硫黄を輸出してクレジット獲得（開いている間は時間停止）。</p>
+    <div id="inventory-purchase" class="inventory-purchase"></div>
     <div id="inventory-list" class="inventory-list"></div>
   </dialog>
 

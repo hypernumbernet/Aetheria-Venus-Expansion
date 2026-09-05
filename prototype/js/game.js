@@ -6,6 +6,11 @@ export function getModuleName(type) {
   return t(`module.${type}`);
 }
 
+export function getModuleBuildLabel(type) {
+  const short = t(`moduleShort.${type}`);
+  return short !== `moduleShort.${type}` ? short : getModuleName(type);
+}
+
 /**
  * Per-tick atmospheric intake rates (CORE baseline; intake modules stack).
  * Relative abundances follow Venus atmosphere (§3.1–3.2): CO₂ dominant, N₂ secondary,
@@ -233,6 +238,24 @@ export function formatBuildCost(cost) {
   return Object.entries(cost)
     .map(([k, v]) => `${v} ${getMaterialName(k)}`)
     .join(costSeparator());
+}
+
+/** Compact one-line cost for sidebar build grid (symbols only). */
+export function formatBuildCostCompact(cost) {
+  return Object.entries(cost)
+    .map(([k, v]) => `${v}${MATERIALS[k]?.symbol ?? k}`)
+    .join(' ');
+}
+
+const BUILD_MODULE_TYPES = ['intake', 'isru', 'solar', 'h2cell'];
+
+/** True when any buildable module needs more of this resource than held. */
+export function isResourceShortForBuild(inventory, resourceId) {
+  for (const type of BUILD_MODULE_TYPES) {
+    const need = MODULE_TYPES[type]?.cost?.[resourceId];
+    if (need != null && (inventory[resourceId] ?? 0) < need) return true;
+  }
+  return false;
 }
 
 export function getMissingMaterials(inventory, cost) {

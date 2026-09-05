@@ -22,7 +22,10 @@ import {
   getPlaceableHexes,
   restartGame,
   formatBuildCost,
+  formatBuildCostCompact,
+  isResourceShortForBuild,
   getModuleName,
+  getModuleBuildLabel,
   getIsruStatusLabel,
   getIsruStatusDetail,
   getAcidWaitInfo,
@@ -177,111 +180,156 @@ function updateGameOverOverlay() {
   }
 }
 
-function renderInventoryList() {
-  if (!state) return;
-  const list = document.getElementById('inventory-list');
-  list.innerHTML = '';
+function createInventoryRow(id, compact = false) {
+  const mat = MATERIALS[id];
+  const amount = state.inventory[id] ?? 0;
+  const row = document.createElement('div');
+  row.className = 'inventory-row' + (compact ? ' inventory-row-compact' : '');
+  row.dataset.materialId = id;
 
-  for (const id of INVENTORY_IDS) {
-    const mat = MATERIALS[id];
-    const amount = state.inventory[id] ?? 0;
-    const row = document.createElement('div');
-    row.className = 'inventory-row';
-
-    const info = document.createElement('div');
-    info.className = 'inventory-info';
+  const info = document.createElement('div');
+  info.className = 'inventory-info';
+  if (compact) {
+    info.innerHTML = `<strong>${getMaterialName(id)}</strong>`;
+  } else {
     info.innerHTML = `
       <strong>${getMaterialName(id)}</strong>
       <span class="inventory-desc">${getMaterialDesc(id)}</span>
       <span class="inventory-obtain">${getMaterialObtainLabel(id)}</span>
     `;
+  }
 
-    const holding = document.createElement('div');
-    holding.className = 'inventory-holding';
-    holding.textContent = formatAmount(id, amount);
+  const holding = document.createElement('div');
+  holding.className = 'inventory-holding';
+  holding.textContent = formatAmount(id, amount);
 
-    const actions = document.createElement('div');
-    actions.className = 'inventory-actions';
+  const actions = document.createElement('div');
+  actions.className = 'inventory-actions';
 
-    if (mat.purchasable && !mat.locked) {
-      const buyBtn = document.createElement('button');
-      buyBtn.type = 'button';
-      buyBtn.className = 'buy-btn';
-      buyBtn.textContent = t('inventory.buy', { price: mat.buyPrice });
-      buyBtn.disabled = state.gameOver || (state.inventory.credits ?? 0) < mat.buyPrice;
-      buyBtn.addEventListener('click', () => {
-        const result = buyMaterial(state, id, 1);
-        if (result.ok) {
-          state = result.state;
-          showToast(result.message);
-          renderInventoryList();
-          buildButtons();
-          draw();
-        } else {
-          showToast(result.reason);
-        }
+  if (mat.purchasable && !mat.locked) {
+    const buyBtn = document.createElement('button');
+    buyBtn.type = 'button';
+    buyBtn.className = 'buy-btn';
+    buyBtn.textContent = t('inventory.buy', { price: mat.buyPrice });
+    buyBtn.disabled = state.gameOver || (state.inventory.credits ?? 0) < mat.buyPrice;
+    buyBtn.addEventListener('click', () => {
+      const result = buyMaterial(state, id, 1);
+      if (result.ok) {
+        state = result.state;
+        showToast(result.message);
+        renderInventoryList();
+        buildButtons();
+        draw();
+      } else {
+        showToast(result.reason);
+      }
+    });
+    actions.appendChild(buyBtn);
+  } else if (id === 'sulfur') {
+    const exportBtn = document.createElement('button');
+    exportBtn.type = 'button';
+    exportBtn.className = 'export-btn';
+    exportBtn.textContent = t('inventory.exportSulfur', { cost: TRADE_SULFUR_COST });
+    exportBtn.disabled = state.gameOver || (state.inventory.sulfur ?? 0) < TRADE_SULFUR_COST;
+    exportBtn.addEventListener('click', () => {
+      const result = tradeWithEarth(state);
+      if (result.ok) {
+        state = result.state;
+        showToast(result.message);
+        renderInventoryList();
+        buildButtons();
+        draw();
+      } else {
+        showToast(result.reason);
+      }
+    });
+    actions.appendChild(exportBtn);
+  } else if (id === 'credits') {
+    const hint = document.createElement('span');
+    hint.className = 'inventory-hint';
+    hint.textContent = t('inventory.creditsHint');
+    actions.appendChild(hint);
+  } else if (INVENTORY_CARGO_MASS_IDS.includes(id) && amount > 0) {
+    const ventBtn = document.createElement('button');
+    ventBtn.type = 'button';
+    ventBtn.className = 'vent-btn';
+    ventBtn.textContent = t('inventory.ventCargo', { amount: VENT_CARGO_BATCH });
+    ventBtn.title = t('inventory.ventCargoHint');
+    ventBtn.disabled = state.gameOver || amount < VENT_CARGO_BATCH;
+    ventBtn.addEventListener('click', () => {
+      const confirmMsg = t('msg.confirmVent', {
+        amount: VENT_CARGO_BATCH,
+        name: getMaterialName(id),
       });
-      actions.appendChild(buyBtn);
-    } else if (id === 'sulfur') {
-      const exportBtn = document.createElement('button');
-      exportBtn.type = 'button';
-      exportBtn.className = 'export-btn';
-      exportBtn.textContent = t('inventory.exportSulfur', { cost: TRADE_SULFUR_COST });
-      exportBtn.disabled = state.gameOver || (state.inventory.sulfur ?? 0) < TRADE_SULFUR_COST;
-      exportBtn.addEventListener('click', () => {
-        const result = tradeWithEarth(state);
-        if (result.ok) {
-          state = result.state;
-          showToast(result.message);
-          renderInventoryList();
-          buildButtons();
-          draw();
-        } else {
-          showToast(result.reason);
-        }
-      });
-      actions.appendChild(exportBtn);
-    } else if (id === 'credits') {
-      const hint = document.createElement('span');
-      hint.className = 'inventory-hint';
-      hint.textContent = t('inventory.creditsHint');
-      actions.appendChild(hint);
-    } else if (INVENTORY_CARGO_MASS_IDS.includes(id) && amount > 0) {
-      const ventBtn = document.createElement('button');
-      ventBtn.type = 'button';
-      ventBtn.className = 'vent-btn';
-      ventBtn.textContent = t('inventory.ventCargo', { amount: VENT_CARGO_BATCH });
-      ventBtn.title = t('inventory.ventCargoHint');
-      ventBtn.disabled = state.gameOver || amount < VENT_CARGO_BATCH;
-      ventBtn.addEventListener('click', () => {
-        const confirmMsg = t('msg.confirmVent', {
-          amount: VENT_CARGO_BATCH,
-          name: getMaterialName(id),
-        });
-        if (!window.confirm(confirmMsg)) return;
-        const result = ventCargo(state, id, VENT_CARGO_BATCH);
-        if (result.ok) {
-          state = result.state;
-          showToast(result.message);
-          renderInventoryList();
-          buildButtons();
-          draw();
-        } else {
-          showToast(result.reason);
-        }
-      });
-      actions.appendChild(ventBtn);
-    }
+      if (!window.confirm(confirmMsg)) return;
+      const result = ventCargo(state, id, VENT_CARGO_BATCH);
+      if (result.ok) {
+        state = result.state;
+        showToast(result.message);
+        renderInventoryList();
+        buildButtons();
+        draw();
+      } else {
+        showToast(result.reason);
+      }
+    });
+    actions.appendChild(ventBtn);
+  }
 
-    row.append(info, holding, actions);
-    list.appendChild(row);
+  row.append(info, holding, actions);
+  return row;
+}
+
+function renderInventoryList() {
+  if (!state) return;
+  const purchaseEl = document.getElementById('inventory-purchase');
+  const list = document.getElementById('inventory-list');
+  purchaseEl.innerHTML = '';
+  list.innerHTML = '';
+
+  for (const id of ['iron', 'h2o']) {
+    purchaseEl.appendChild(createInventoryRow(id, true));
+  }
+
+  const restHeading = document.createElement('h3');
+  restHeading.className = 'inventory-list-heading';
+  restHeading.textContent = t('inventory.holdings');
+  list.appendChild(restHeading);
+
+  const restIds = INVENTORY_IDS.filter((id) => id !== 'iron' && id !== 'h2o');
+  for (const id of restIds) {
+    list.appendChild(createInventoryRow(id));
   }
 }
 
-function openInventory() {
+function openInventory(focusMaterialId = null) {
   if (!state || state.gameOver) return;
   renderInventoryList();
   inventoryDialog.showModal();
+  if (focusMaterialId) {
+    requestAnimationFrame(() => {
+      const row = inventoryDialog.querySelector(`[data-material-id="${focusMaterialId}"]`);
+      row?.scrollIntoView({ block: 'nearest' });
+    });
+  }
+}
+
+function tryBuyIron() {
+  if (!state || state.gameOver) return;
+  const price = MATERIALS.iron.buyPrice;
+  if ((state.inventory.credits ?? 0) >= price) {
+    const result = buyMaterial(state, 'iron', 1);
+    if (result.ok) {
+      state = result.state;
+      showToast(result.message);
+      buildButtons();
+      draw();
+      return;
+    }
+    showToast(result.reason);
+    return;
+  }
+  openInventory('iron');
 }
 
 function formatPenaltyValue(n) {
@@ -359,17 +407,33 @@ function updateUI() {
   }
   const isruStatusEl = document.getElementById('stat-isru');
   const isruDetailEl = document.getElementById('stat-isru-detail');
+  const isruDetailsEl = document.getElementById('isru-details');
+  const isruSummaryEl = document.getElementById('isru-summary-line');
   const acidProgressWrap = document.getElementById('acid-progress-wrap');
   const acidProgressBar = document.getElementById('acid-progress-bar');
+  const isruStatus = state.isruWaitStatus ?? 'noIsru';
+  const waitingIsru = ['waitingAcid', 'waitingH2', 'electrolyzing', 'noPower'].includes(isruStatus);
   if (isruStatusEl) {
     isruStatusEl.textContent = getIsruStatusLabel(state);
-    const status = state.isruWaitStatus ?? 'noIsru';
-    isruStatusEl.className = ['waitingAcid', 'waitingH2', 'electrolyzing', 'noPower'].includes(status) ? 'warning' : '';
+    isruStatusEl.className = waitingIsru ? 'warning' : '';
   }
   if (isruDetailEl) {
     const detail = getIsruStatusDetail(state);
     isruDetailEl.textContent = detail ?? '';
     isruDetailEl.hidden = !detail;
+  }
+  if (isruDetailsEl && stats.isruCount > 0 && waitingIsru) {
+    isruDetailsEl.open = true;
+  }
+  if (isruSummaryEl) {
+    const detail = getIsruStatusDetail(state);
+    const detailsClosed = isruDetailsEl && !isruDetailsEl.open;
+    if (detailsClosed && detail && waitingIsru) {
+      isruSummaryEl.textContent = detail.split('\n')[0];
+      isruSummaryEl.hidden = false;
+    } else {
+      isruSummaryEl.hidden = true;
+    }
   }
   if (acidProgressWrap && acidProgressBar) {
     const acid = getAcidWaitInfo(state);
@@ -411,12 +475,20 @@ function updateUI() {
     }
   }
 
-  set('res-co2', state.inventory.co2.toFixed(1));
-  set('res-carbon', state.inventory.carbon.toFixed(1));
-  set('res-n2', state.inventory.n2.toFixed(1));
-  set('res-h2so4', formatH2so4Amount(state.inventory.h2so4));
-  set('res-h2', state.inventory.h2.toFixed(1));
-  set('res-o2', state.inventory.o2.toFixed(1));
+  const setResource = (id, text) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    const resId = id.replace('res-', '');
+    el.className = isResourceShortForBuild(state.inventory, resId) ? 'resource-short' : '';
+  };
+
+  setResource('res-co2', state.inventory.co2.toFixed(1));
+  setResource('res-carbon', state.inventory.carbon.toFixed(1));
+  setResource('res-n2', state.inventory.n2.toFixed(1));
+  setResource('res-h2so4', formatH2so4Amount(state.inventory.h2so4));
+  setResource('res-h2', state.inventory.h2.toFixed(1));
+  setResource('res-o2', state.inventory.o2.toFixed(1));
   const o2FlowEl = document.getElementById('res-o2-flow');
   if (o2FlowEl) {
     const flow = getO2Flow(state);
@@ -430,8 +502,8 @@ function updateUI() {
       o2FlowEl.hidden = true;
     }
   }
-  set('res-h2o', state.inventory.h2o.toFixed(1));
-  set('res-sulfur', state.inventory.sulfur.toFixed(1));
+  setResource('res-h2o', state.inventory.h2o.toFixed(1));
+  setResource('res-sulfur', state.inventory.sulfur.toFixed(1));
   const sulfurUpkeepEl = document.getElementById('sulfur-upkeep-hint');
   if (sulfurUpkeepEl) {
     const upkeep = getCorrosionMaintenanceInfo(state);
@@ -442,8 +514,21 @@ function updateUI() {
       sulfurUpkeepEl.hidden = true;
     }
   }
-  set('res-iron', state.inventory.iron.toFixed(1));
+  setResource('res-iron', state.inventory.iron.toFixed(1));
   set('res-credits', state.inventory.credits.toFixed(0));
+
+  const otherResourcesDetails = document.getElementById('other-resources-details');
+  if (otherResourcesDetails) {
+    const foldShort = ['co2', 'n2', 'o2'].some((id) => isResourceShortForBuild(state.inventory, id));
+    if (foldShort) otherResourcesDetails.open = true;
+  }
+
+  const buyIronBtn = document.getElementById('btn-buy-iron');
+  if (buyIronBtn) {
+    const price = MATERIALS.iron.buyPrice;
+    buyIronBtn.textContent = t('panel.buyIron', { price });
+    buyIronBtn.disabled = state.gameOver;
+  }
 
   document.getElementById('tick-counter').textContent = t('tick', { n: state.tick });
 
@@ -540,6 +625,7 @@ function updateUI() {
     const showDock = !!(sel && state.modules.has(sel));
     const showBuild = !!state.selectedBuild;
     mapBottomBar.hidden = !showDock && !showBuild;
+    mapBottomBar.classList.toggle('compact', showDock && showBuild);
   }
 }
 
@@ -597,12 +683,16 @@ function buildButtons() {
     if (preview?.wouldDeficit) {
       badges.push(`<span class="build-power-badge" title="${powerLine}">⚡</span>`);
     }
+    const badgeHtml = badges.length
+      ? `<span class="build-btn-badges">${badges.join('')}</span>`
+      : '';
     const btn = document.createElement('button');
     btn.className = 'build-btn' + (state.selectedBuild === type ? ' active' : '')
       + (!affordable && !state.gameOver ? ' unaffordable' : '');
+    btn.style.borderLeftColor = def.color;
     btn.disabled = state.gameOver || !affordable;
     if (tooltipParts.length) btn.title = tooltipParts.join('\n');
-    btn.innerHTML = `<span class="swatch" style="background:${def.color}"></span><span class="build-btn-label"><strong>${getModuleName(type)}</strong><small>${formatBuildCost(def.cost)}</small></span>${badges.length ? `<span class="build-btn-badges">${badges.join('')}</span>` : ''}`;
+    btn.innerHTML = `<span class="build-btn-label"><span class="build-btn-title"><strong>${getModuleBuildLabel(type)}</strong>${badgeHtml}</span><small>${formatBuildCostCompact(def.cost)}</small></span>`;
     btn.addEventListener('click', () => {
       if (!canAfford(state.inventory, def.cost)) return;
       const next = state.selectedBuild === type ? null : type;
@@ -773,7 +863,13 @@ canvas.addEventListener('click', (e) => {
 
   const { x, y } = canvasCoords(e);
   const hit = hexUnderPointer(x, y);
-  if (!hit) return;
+  if (!hit) {
+    if (state.selectedHex) {
+      state = { ...state, selectedHex: null };
+      draw();
+    }
+    return;
+  }
 
   const { q, r, key } = hit;
 
@@ -905,7 +1001,9 @@ document.querySelectorAll('input[name="locale"]').forEach((input) => {
   });
 });
 
-document.getElementById('btn-inventory').addEventListener('click', openInventory);
+document.getElementById('btn-inventory').addEventListener('click', () => openInventory());
+
+document.getElementById('btn-buy-iron')?.addEventListener('click', tryBuyIron);
 
 document.getElementById('inventory-export-cue')?.addEventListener('click', () => {
   if (!state || state.gameOver) return;
@@ -958,12 +1056,24 @@ function cancelConstructionMode() {
   return true;
 }
 
+function clearSelection() {
+  if (!state?.selectedHex) return false;
+  state = { ...state, selectedHex: null };
+  draw();
+  return true;
+}
+
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (newgameDialog.open || gameoverOverlay.hidden === false) return;
   if (inventoryDialog.open || settingsDialog.open) return;
   if (!gameStarted || !state) return;
-  cancelConstructionMode();
+  if (cancelConstructionMode()) return;
+  clearSelection();
+});
+
+document.getElementById('isru-details')?.addEventListener('toggle', () => {
+  if (state) draw();
 });
 
 onLocaleChange(() => applyLocale());
