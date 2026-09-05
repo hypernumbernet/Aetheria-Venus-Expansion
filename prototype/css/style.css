@@ -29,13 +29,13 @@ body {
 #app {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
 }
 
 .header {
   position: relative;
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   padding-top: 0.25rem;
 }
 
@@ -84,6 +84,7 @@ body {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
+  align-items: flex-start;
 }
 
 .map-panel {
@@ -95,6 +96,50 @@ body {
   overflow: hidden;
 }
 
+.map-panel.build-mode-active #game-canvas {
+  outline: 2px solid var(--cyan);
+  outline-offset: -2px;
+}
+
+.build-mode-banner {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(22, 27, 34, 0.94);
+  border: 1px solid var(--cyan);
+  color: var(--text);
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  z-index: 6;
+  white-space: nowrap;
+  max-width: calc(100% - 1.5rem);
+}
+
+.build-mode-banner[hidden] {
+  display: none;
+}
+
+.build-mode-cancel {
+  flex-shrink: 0;
+  padding: 0.2rem 0.45rem;
+  background: #21262d;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--cyan);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.build-mode-cancel:hover {
+  border-color: var(--cyan);
+}
+
 #game-canvas {
   display: block;
   width: 720px;
@@ -104,10 +149,64 @@ body {
 }
 
 .sidebar {
-  flex: 0 1 280px;
+  flex: 0 1 300px;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0;
+  max-height: calc(100vh - 5.5rem);
+  align-self: flex-start;
+  position: sticky;
+  top: 0.5rem;
+}
+
+.sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 0.25rem;
+}
+
+.panel-compact {
+  padding: 0.55rem 0.75rem;
+}
+
+.panel-compact h2 {
+  margin-bottom: 0.35rem;
+}
+
+.panel-selection {
+  flex-shrink: 0;
+  padding: 0.55rem 0.75rem;
+  border-top: 2px solid var(--accent-dim);
+  box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.35);
+  z-index: 2;
+}
+
+.status-details {
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+}
+
+.status-details summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  user-select: none;
+  padding: 0.15rem 0;
+}
+
+.status-details summary:hover {
+  color: var(--text);
+}
+
+.status-details[open] summary {
+  margin-bottom: 0.25rem;
+}
+
+.status-details .stats {
+  margin-top: 0.15rem;
 }
 
 .panel {
@@ -204,24 +303,78 @@ body {
 }
 
 .build-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem;
 }
 
 .build-btn {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 0.6rem;
+  gap: 0.35rem;
+  padding: 0.3rem 0.4rem;
   background: #21262d;
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s, background 0.15s;
+  min-height: 2.4rem;
+}
+
+.build-btn-label {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.build-btn-label strong {
+  display: block;
+  font-size: 0.72rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.build-btn-label small {
+  display: block;
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.build-btn-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex-shrink: 0;
+}
+
+.build-shortage-badge,
+.build-power-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 3px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.build-shortage-badge {
+  background: rgba(248, 81, 73, 0.25);
+  color: var(--red);
+}
+
+.build-power-badge {
+  background: rgba(210, 153, 34, 0.25);
+  color: var(--amber);
 }
 
 .build-btn:hover {
@@ -264,6 +417,10 @@ body {
   color: var(--amber);
 }
 
+.panel-build .hint {
+  margin-top: 0.35rem;
+}
+
 .build-btn.unaffordable {
   opacity: 0.72;
 }
@@ -295,34 +452,26 @@ body {
   gap: 0.1rem;
 }
 
-.sidebar-export-hint {
-  font-size: 0.65rem;
-  font-weight: 500;
-  color: var(--accent);
-  line-height: 1.2;
-  padding: 0;
-  border: none;
-  background: none;
+.inventory-export-cue {
+  font-size: 0.68rem;
+  color: var(--amber);
+  text-align: center;
+  margin: 0.35rem 0 0.15rem;
+  line-height: 1.3;
+}
+
+.inventory-export-cue[hidden] {
+  display: none;
+}
+
+.inventory-export-cue.clickable {
   cursor: pointer;
-  text-align: right;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-.sidebar-export-hint:hover:not(:disabled) {
+.inventory-export-cue.clickable:hover {
   color: #f0b87a;
-}
-
-.sidebar-export-hint:disabled {
-  opacity: 0.45;
-  cursor: default;
-  text-decoration: none;
-}
-
-.sidebar-export-hint.static {
-  cursor: default;
-  text-decoration: none;
-  color: var(--text-muted);
 }
 
 .hint {
@@ -334,9 +483,21 @@ body {
 
 .selected-info {
   font-size: 0.82rem;
-  margin-bottom: 0.5rem;
-  min-height: 2.5em;
+  margin-bottom: 0;
   line-height: 1.4;
+}
+
+.selected-info.has-selection {
+  margin-bottom: 0.4rem;
+  min-height: 2em;
+}
+
+.selection-actions .action-btn {
+  margin-bottom: 0.3rem;
+}
+
+.selection-actions .action-btn:last-child {
+  margin-bottom: 0;
 }
 
 .action-btn {
@@ -409,10 +570,20 @@ body {
 }
 
 .footer {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   text-align: center;
   font-size: 0.72rem;
   color: var(--text-muted);
+}
+
+@media (max-height: 720px) {
+  .footer {
+    display: none;
+  }
+
+  .sidebar {
+    max-height: calc(100vh - 4.5rem);
+  }
 }
 
 .toast {
@@ -445,7 +616,7 @@ body {
 }
 
 .inventory-open-btn {
-  margin-top: 0.5rem;
+  margin-top: 0.35rem;
   margin-bottom: 0;
 }
 
@@ -668,15 +839,15 @@ body {
 }
 
 .cancel-build-btn {
-  margin-top: 0.5rem;
+  margin-top: 0.35rem;
   width: 100%;
 }
 
 .h2-actions:not([hidden]) {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  margin-bottom: 0.35rem;
+  gap: 0.3rem;
+  margin-bottom: 0.3rem;
 }
 
 .earth-trade-intro {
