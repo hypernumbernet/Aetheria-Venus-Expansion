@@ -449,6 +449,7 @@ function updateUI() {
 
   const sel = state.selectedHex;
   const info = document.getElementById('selected-info');
+  const mapActionDock = document.getElementById('map-action-dock');
   const selectionActions = document.getElementById('selection-actions');
   const h2Actions = document.getElementById('h2-actions');
   const extendBtn = document.getElementById('btn-extend-h2');
@@ -462,6 +463,7 @@ function updateUI() {
     const isH2Cell = mod.type === 'h2cell';
     info.textContent = formatSelectedInfo(mod, sel);
     info.classList.add('has-selection');
+    if (mapActionDock) mapActionDock.hidden = false;
     if (selectionActions) selectionActions.hidden = false;
     if (h2Actions) h2Actions.hidden = !isH2Cell;
     if (isH2Cell) {
@@ -488,8 +490,9 @@ function updateUI() {
         || (mod.carbonLighten ?? 0) >= 3;
     }
   } else {
-    info.textContent = t('panel.selectedNone');
+    info.textContent = '';
     info.classList.remove('has-selection');
+    if (mapActionDock) mapActionDock.hidden = true;
     if (selectionActions) selectionActions.hidden = true;
     if (h2Actions) h2Actions.hidden = true;
     if (coatingHint) coatingHint.hidden = true;
@@ -508,6 +511,7 @@ function updateUI() {
   const buildModeBanner = document.getElementById('build-mode-banner');
   const buildModeLabel = document.getElementById('build-mode-label');
   const mapPanel = document.querySelector('.map-panel');
+  const mapBottomBar = document.querySelector('.map-bottom-bar');
   if (buildHint) {
     const hasShortage = ['intake', 'isru', 'solar', 'h2cell'].some((type) => {
       const def = MODULE_TYPES[type];
@@ -531,6 +535,11 @@ function updateUI() {
       buildModeBanner.hidden = true;
       mapPanel?.classList.remove('build-mode-active');
     }
+  }
+  if (mapBottomBar) {
+    const showDock = !!(sel && state.modules.has(sel));
+    const showBuild = !!state.selectedBuild;
+    mapBottomBar.hidden = !showDock && !showBuild;
   }
 }
 

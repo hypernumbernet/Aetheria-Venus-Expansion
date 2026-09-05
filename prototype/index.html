@@ -20,13 +20,30 @@
 
     <main class="main">
       <section class="map-panel">
-        <canvas id="game-canvas" width="720" height="560"></canvas>
-        <div id="build-mode-banner" class="build-mode-banner" hidden>
-          <span id="build-mode-label"></span>
-          <button id="btn-cancel-build-map" type="button" class="build-mode-cancel" data-i18n="panel.cancelBuildShort">Esc</button>
+        <div class="map-canvas-wrap">
+          <canvas id="game-canvas" width="720" height="560"></canvas>
+          <div id="sink-warning" class="sink-warning" hidden></div>
+          <div id="toast" class="toast" aria-live="polite"></div>
         </div>
-        <div id="sink-warning" class="sink-warning" hidden></div>
-        <div id="toast" class="toast" aria-live="polite"></div>
+        <div class="map-bottom-bar">
+          <div id="map-action-dock" class="map-action-dock" hidden>
+            <p id="selected-info" class="selected-info selected-info-compact"></p>
+            <div id="selection-actions" class="selection-actions selection-actions-inline" hidden>
+              <div id="h2-actions" class="h2-actions h2-actions-inline" hidden>
+                <button id="btn-extend-h2" class="action-btn action-btn-compact" data-i18n="panel.extendH2">H₂層を延伸（浮力↑・風荷重↑）</button>
+                <button id="btn-lower-h2" class="action-btn secondary action-btn-compact" data-i18n="panel.lowerH2">H₂層を下降（浮力↓・風荷重↓）</button>
+              </div>
+              <button id="btn-apply-coating" class="action-btn secondary action-btn-compact" data-i18n="panel.applyCoating">硫黄コーティング（S 1t・腐食↓）</button>
+              <button id="btn-carbon-lighten" class="action-btn secondary action-btn-compact" data-i18n="panel.carbonLighten">炭素複合材（C 1t：質量↓・浮力↑）</button>
+              <button id="btn-dismantle" class="action-btn danger action-btn-compact" data-i18n="panel.dismantleModule">モジュール解体（Fe 一部返却）</button>
+            </div>
+            <p id="coating-hint" class="hint coating-hint coating-hint-inline" hidden data-i18n="panel.coatingHint">腐食が進行中 — 硫黄コーティング（S）で被害を抑えられます</p>
+          </div>
+          <div id="build-mode-banner" class="build-mode-banner" hidden>
+            <span id="build-mode-label"></span>
+            <button id="btn-cancel-build-map" type="button" class="build-mode-cancel" data-i18n="panel.cancelBuildShort">Esc</button>
+          </div>
+        </div>
       </section>
 
       <aside class="sidebar">
@@ -111,21 +128,6 @@
             <span class="tick-rate" data-i18n="panel.tickRate">1秒 = 1ティック</span>
           </section>
         </div>
-
-        <section class="panel panel-selection">
-          <h2 data-i18n="panel.selectedUnit">選択中のユニット</h2>
-          <p id="selected-info" class="selected-info" data-i18n="panel.selectedNone">モジュールをクリックして選択。</p>
-          <div id="selection-actions" class="selection-actions" hidden>
-            <div id="h2-actions" class="h2-actions" hidden>
-              <button id="btn-extend-h2" class="action-btn" data-i18n="panel.extendH2">H₂層を延伸（浮力↑・風荷重↑）</button>
-              <button id="btn-lower-h2" class="action-btn secondary" data-i18n="panel.lowerH2">H₂層を下降（浮力↓・風荷重↓）</button>
-            </div>
-            <button id="btn-apply-coating" class="action-btn secondary" data-i18n="panel.applyCoating">硫黄コーティング（S 1t・腐食↓）</button>
-            <p id="coating-hint" class="hint coating-hint" hidden data-i18n="panel.coatingHint">腐食が進行中 — 硫黄コーティング（S）で被害を抑えられます</p>
-            <button id="btn-carbon-lighten" class="action-btn secondary" data-i18n="panel.carbonLighten">炭素複合材（C 1t：質量↓・浮力↑）</button>
-            <button id="btn-dismantle" class="action-btn danger" data-i18n="panel.dismantleModule">モジュール解体（Fe 一部返却）</button>
-          </div>
-        </section>
       </aside>
     </main>
 
