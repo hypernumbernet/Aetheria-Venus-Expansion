@@ -30,12 +30,12 @@
             <p id="selected-info" class="selected-info selected-info-compact"></p>
             <div id="selection-actions" class="selection-actions selection-actions-inline" hidden>
               <div id="h2-actions" class="h2-actions h2-actions-inline" hidden>
-                <button id="btn-extend-h2" class="action-btn action-btn-compact" data-i18n="panel.extendH2">H₂層を延伸（浮力↑・風荷重↑）</button>
-                <button id="btn-lower-h2" class="action-btn secondary action-btn-compact" data-i18n="panel.lowerH2">H₂層を下降（浮力↓・風荷重↓）</button>
+                <button id="btn-extend-h2" class="action-btn action-btn-compact" data-i18n="panel.extendH2Short" data-i18n-title="panel.extendH2">延伸</button>
+                <button id="btn-lower-h2" class="action-btn secondary action-btn-compact" data-i18n="panel.lowerH2Short" data-i18n-title="panel.lowerH2">下降</button>
               </div>
-              <button id="btn-apply-coating" class="action-btn secondary action-btn-compact" data-i18n="panel.applyCoating">硫黄コーティング（S 1t・腐食↓）</button>
-              <button id="btn-carbon-lighten" class="action-btn secondary action-btn-compact" data-i18n="panel.carbonLighten">炭素複合材（C 1t：質量↓・浮力↑）</button>
-              <button id="btn-dismantle" class="action-btn danger action-btn-compact" data-i18n="panel.dismantleModule">モジュール解体（Fe 一部返却）</button>
+              <button id="btn-apply-coating" class="action-btn secondary action-btn-compact" data-i18n="panel.applyCoatingShort" data-i18n-title="panel.applyCoating">コーティング</button>
+              <button id="btn-carbon-lighten" class="action-btn secondary action-btn-compact" data-i18n="panel.carbonLightenShort" data-i18n-title="panel.carbonLighten">軽量化</button>
+              <button id="btn-dismantle" class="action-btn danger action-btn-compact" data-i18n="panel.dismantleModuleShort" data-i18n-title="panel.dismantleModule">解体</button>
             </div>
             <p id="coating-hint" class="hint coating-hint coating-hint-inline" hidden data-i18n="panel.coatingHint">腐食が進行中 — 硫黄コーティング（S）で被害を抑えられます</p>
           </div>
@@ -48,8 +48,8 @@
 
       <aside class="sidebar">
         <div class="sidebar-scroll">
-          <section class="panel panel-compact">
-            <h2 data-i18n="panel.continentStatus">浮遊大陸ステータス</h2>
+          <details id="continent-status-details" class="panel panel-compact status-details-panel" open>
+            <summary data-i18n="panel.continentStatus">浮遊大陸ステータス</summary>
             <dl class="stats stats-primary">
               <div><dt data-i18n="panel.buoyancy">浮力</dt><dd id="stat-buoyancy">—</dd></div>
               <div><dt data-i18n="panel.mass">質量</dt><dd id="stat-mass">—</dd></div>
@@ -80,7 +80,7 @@
                 </div>
               </dl>
             </details>
-          </section>
+          </details>
 
           <section class="panel panel-compact">
             <h2 data-i18n="panel.resources">資源</h2>
@@ -114,7 +114,11 @@
               </dl>
             </details>
             <p id="inventory-export-cue" class="inventory-export-cue" hidden></p>
-            <button id="btn-buy-iron" type="button" class="action-btn secondary buy-iron-btn" data-i18n="panel.buyIron">Feを買う</button>
+            <div class="market-shortcuts">
+              <button id="btn-buy-iron" type="button" class="action-btn secondary market-shortcut-btn" data-i18n="panel.buyIron">Feを買う</button>
+              <button id="btn-buy-h2o" type="button" class="action-btn secondary market-shortcut-btn" data-i18n="panel.buyH2o">H₂Oを買う</button>
+              <button id="btn-export-sulfur" type="button" class="action-btn secondary market-shortcut-btn" hidden data-i18n="panel.exportSulfurShort">S輸出</button>
+            </div>
             <button id="btn-inventory" class="action-btn inventory-open-btn" data-i18n="panel.inventory">在庫・地球市場（輸出）</button>
           </section>
         </div>
@@ -125,7 +129,7 @@
             <div class="build-buttons" id="build-buttons"></div>
             <p class="build-legend"><span class="build-legend-icon shortage">!</span> <span data-i18n="panel.buildLegendShortage">材料不足</span> <span class="build-legend-icon power">⚡</span> <span data-i18n="panel.buildLegendPower">電力不足</span></p>
             <p class="hint" id="build-hint" hidden data-i18n="panel.buildHint">浮遊大陸に隣接する空きユニットをクリック。</p>
-            <button id="btn-cancel-build" type="button" class="action-btn secondary cancel-build-btn" hidden data-i18n="panel.cancelBuild">建設をキャンセル（Esc）</button>
+            <button id="btn-cancel-build" type="button" class="action-btn secondary cancel-build-btn" hidden data-i18n="panel.cancelBuild">建設をキャンセル</button>
           </section>
 
           <section class="panel tick-panel">
