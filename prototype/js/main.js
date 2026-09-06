@@ -314,11 +314,13 @@ function openInventory(focusMaterialId = null) {
   }
 }
 
-function tryBuyIron() {
+function tryBuyMaterial(materialId) {
   if (!state || state.gameOver) return;
-  const price = MATERIALS.iron.buyPrice;
+  const mat = MATERIALS[materialId];
+  if (!mat?.purchasable) return;
+  const price = mat.buyPrice;
   if ((state.inventory.credits ?? 0) >= price) {
-    const result = buyMaterial(state, 'iron', 1);
+    const result = buyMaterial(state, materialId, 1);
     if (result.ok) {
       state = result.state;
       showToast(result.message);
@@ -329,7 +331,32 @@ function tryBuyIron() {
     showToast(result.reason);
     return;
   }
-  openInventory('iron');
+  openInventory(materialId);
+}
+
+function tryBuyIron() {
+  tryBuyMaterial('iron');
+}
+
+function tryBuyH2o() {
+  tryBuyMaterial('h2o');
+}
+
+function tryExportSulfur() {
+  if (!state || state.gameOver) return;
+  if ((state.inventory.sulfur ?? 0) < TRADE_SULFUR_COST) {
+    openInventory('sulfur');
+    return;
+  }
+  const result = tradeWithEarth(state);
+  if (result.ok) {
+    state = result.state;
+    showToast(result.message);
+    buildButtons();
+    draw();
+  } else {
+    showToast(result.reason);
+  }
 }
 
 function formatPenaltyValue(n) {
@@ -463,9 +490,11 @@ function updateUI() {
   }
 
   const inventoryExportCue = document.getElementById('inventory-export-cue');
+  const exportSulfurBtn = document.getElementById('btn-export-sulfur');
+  const sulfurAmount = state.inventory.sulfur ?? 0;
+  const canExportSulfur = sulfurAmount >= TRADE_SULFUR_COST;
   if (inventoryExportCue) {
-    const sulfurShort = (state.inventory.sulfur ?? 0) < TRADE_SULFUR_COST;
-    if (sulfurShort) {
+    if (!canExportSulfur) {
       inventoryExportCue.textContent = t('panel.sulfurExportWait');
       inventoryExportCue.hidden = false;
       inventoryExportCue.classList.add('clickable');
@@ -473,6 +502,11 @@ function updateUI() {
       inventoryExportCue.hidden = true;
       inventoryExportCue.classList.remove('clickable');
     }
+  }
+  if (exportSulfurBtn) {
+    exportSulfurBtn.textContent = t('panel.exportSulfurShort', { cost: TRADE_SULFUR_COST });
+    exportSulfurBtn.hidden = !canExportSulfur;
+    exportSulfurBtn.disabled = state.gameOver;
   }
 
   const setResource = (id, text) => {
@@ -528,6 +562,12 @@ function updateUI() {
     const price = MATERIALS.iron.buyPrice;
     buyIronBtn.textContent = t('panel.buyIron', { price });
     buyIronBtn.disabled = state.gameOver;
+  }
+  const buyH2oBtn = document.getElementById('btn-buy-h2o');
+  if (buyH2oBtn) {
+    const price = MATERIALS.h2o.buyPrice;
+    buyH2oBtn.textContent = t('panel.buyH2o', { price });
+    buyH2oBtn.disabled = state.gameOver;
   }
 
   document.getElementById('tick-counter').textContent = t('tick', { n: state.tick });
@@ -656,9 +696,17 @@ function formatBuildMissingLine(missing) {
   return t('panel.buildMaterialShort', { detail });
 }
 
-function formatBuildMissingShort(missing) {
-  if (!missing.length) return '';
-  return missing.map((m) => getMaterialName(m.id)).join(costSeparator());
+function formatBuildShortageReason(missing, preview) {
+  const parts = [];
+  for (const m of missing) {
+    const symbol = MATERIALS[m.id]?.symbol ?? m.id;
+    parts.push(t('panel.buildShortMaterial', { material: symbol }));
+  }
+  if (preview?.wouldDeficit) {
+    const net = Math.round(preview.projectedNet);
+    parts.push(t('panel.buildShortPower', { net }));
+  }
+  return parts.join(' · ');
 }
 
 function buildButtons() {
@@ -672,19 +720,15 @@ function buildButtons() {
     const missing = affordable ? [] : getMissingMaterials(state.inventory, def.cost);
     const powerLine = preview ? formatBuildPowerLine(preview) : '';
     const missingLine = formatBuildMissingLine(missing);
-    const missingShort = formatBuildMissingShort(missing);
+    const shortageReason = formatBuildShortageReason(missing, preview);
     const tooltipParts = [];
     if (missingLine) tooltipParts.push(missingLine);
     if (powerLine) tooltipParts.push(powerLine);
-    const badges = [];
-    if (!affordable && missingShort) {
-      badges.push(`<span class="build-shortage-badge" title="${missingLine}">!</span>`);
-    }
-    if (preview?.wouldDeficit) {
-      badges.push(`<span class="build-power-badge" title="${powerLine}">⚡</span>`);
-    }
-    const badgeHtml = badges.length
-      ? `<span class="build-btn-badges">${badges.join('')}</span>`
+    const reasonClass = shortageReason && preview?.wouldDeficit && !missing.length
+      ? 'build-shortage-reason power-only'
+      : 'build-shortage-reason';
+    const reasonHtml = shortageReason
+      ? `<span class="${reasonClass}">${shortageReason}</span>`
       : '';
     const btn = document.createElement('button');
     btn.className = 'build-btn' + (state.selectedBuild === type ? ' active' : '')
@@ -692,7 +736,7 @@ function buildButtons() {
     btn.style.borderLeftColor = def.color;
     btn.disabled = state.gameOver || !affordable;
     if (tooltipParts.length) btn.title = tooltipParts.join('\n');
-    btn.innerHTML = `<span class="build-btn-label"><span class="build-btn-title"><strong>${getModuleBuildLabel(type)}</strong>${badgeHtml}</span><small>${formatBuildCostCompact(def.cost)}</small></span>`;
+    btn.innerHTML = `<span class="build-btn-label"><span class="build-btn-title"><strong>${getModuleBuildLabel(type)}</strong></span><small>${formatBuildCostCompact(def.cost)}</small>${reasonHtml}</span>`;
     btn.addEventListener('click', () => {
       if (!canAfford(state.inventory, def.cost)) return;
       const next = state.selectedBuild === type ? null : type;
@@ -880,7 +924,7 @@ canvas.addEventListener('click', (e) => {
   }
 
   if (!state.selectedBuild) {
-    showToast(t('msg.noBuildSelected'));
+    clearSelection();
     return;
   }
 
@@ -1005,9 +1049,13 @@ document.getElementById('btn-inventory').addEventListener('click', () => openInv
 
 document.getElementById('btn-buy-iron')?.addEventListener('click', tryBuyIron);
 
+document.getElementById('btn-buy-h2o')?.addEventListener('click', tryBuyH2o);
+
+document.getElementById('btn-export-sulfur')?.addEventListener('click', tryExportSulfur);
+
 document.getElementById('inventory-export-cue')?.addEventListener('click', () => {
   if (!state || state.gameOver) return;
-  openInventory();
+  openInventory('sulfur');
 });
 
 document.getElementById('btn-cancel-build-map')?.addEventListener('click', () => {

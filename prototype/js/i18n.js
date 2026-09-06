@@ -120,14 +120,19 @@ const STRINGS = {
       buildLegendPower: 'power deficit',
       buildModeBanner: 'Building: {module} — click adjacent hex',
       cancelBuildShort: 'Esc',
-      cancelBuild: 'Cancel build (Esc)',
+      cancelBuild: 'Cancel build',
       selectedUnit: 'Selected Unit',
       selectedNone: 'Click a module to select.',
       extendH2: 'Extend H₂ Layer (+buoyancy, +wind)',
+      extendH2Short: 'Extend',
       lowerH2: 'Lower H₂ Layer (−buoyancy, −wind)',
+      lowerH2Short: 'Lower',
       applyCoating: 'Sulfur Coating (1t S, −corrosion)',
+      applyCoatingShort: 'Coat',
       carbonLighten: 'Carbon Composite (−1t C: mass↓, lift↑)',
+      carbonLightenShort: 'Lighten',
       dismantleModule: 'Dismantle Module (partial Fe refund)',
+      dismantleModuleShort: 'Scrap',
       coatingHint: 'High corrosion — apply sulfur coating (S) to slow damage',
       tradeEarth: 'Trade with Earth (S → Credits)',
       inventory: 'Inventory & Earth Market (export)',
@@ -149,6 +154,10 @@ const STRINGS = {
       earthAidNone: 'No periodic aid',
       sulfurExportWait: 'Sulfur short for export — wait for ISRU acid split',
       buyIron: 'Buy Fe ({price}₵)',
+      buyH2o: 'Buy H₂O ({price}₵)',
+      exportSulfurShort: 'Export S ({cost}t→₵)',
+      buildShortMaterial: '{material} short',
+      buildShortPower: 'power {net}',
       o2Flow: 'Electrolysis +{produce} / life support −{consume} per tick',
     },
     footer: 'CORE intakes CO₂ continuously. ISRU: acid split → H₂, Bosch → C, electrolysis → O₂ only. Buy Fe/H₂O from Earth market.',
@@ -328,14 +337,19 @@ const STRINGS = {
       buildLegendPower: '電力不足',
       buildModeBanner: '建設中: {module} — 隣接ヘックスをクリック',
       cancelBuildShort: 'Esc',
-      cancelBuild: '建設をキャンセル（Esc）',
+      cancelBuild: '建設をキャンセル',
       selectedUnit: '選択中のユニット',
       selectedNone: 'モジュールをクリックして選択。',
       extendH2: 'H₂層を延伸（浮力↑・風荷重↑）',
+      extendH2Short: '延伸',
       lowerH2: 'H₂層を下降（浮力↓・風荷重↓）',
+      lowerH2Short: '下降',
       applyCoating: '硫黄コーティング（S 1t・腐食↓）',
+      applyCoatingShort: 'コーティング',
       carbonLighten: '炭素複合材（C 1t：質量↓・浮力↑）',
+      carbonLightenShort: '軽量化',
       dismantleModule: 'モジュール解体（Fe 一部返却）',
+      dismantleModuleShort: '解体',
       coatingHint: '腐食が進行中 — 硫黄コーティング（S）で被害を抑えられます',
       tradeEarth: '地球へ輸出（S → クレジット）',
       inventory: '在庫・地球市場（輸出）',
@@ -357,6 +371,10 @@ const STRINGS = {
       earthAidNone: '援助なし',
       sulfurExportWait: '硫黄不足 — ISRU硫酸分解を待つ',
       buyIron: 'Feを買う（{price}₵）',
+      buyH2o: 'H₂Oを買う（{price}₵）',
+      exportSulfurShort: 'S輸出（{cost}t→₵）',
+      buildShortMaterial: '{material}不足',
+      buildShortPower: '電力{net}',
       o2Flow: '電解 +{produce}／生命維持 −{consume}（毎ティック）',
     },
     footer: 'コアがCO₂を常時採取。ISRU：硫酸分解→H₂、ボッシュ→C、電解→O₂のみ。Fe/H₂Oは地球市場で購入。',
@@ -507,5 +525,9 @@ export function applyStaticI18n(root = document) {
   root.querySelectorAll('[data-i18n-aria]').forEach((el) => {
     const key = el.getAttribute('data-i18n-aria');
     if (key) el.setAttribute('aria-label', t(key));
+  });
+  root.querySelectorAll('[data-i18n-title]').forEach((el) => {
+    const key = el.getAttribute('data-i18n-title');
+    if (key) el.title = t(key);
   });
 }
