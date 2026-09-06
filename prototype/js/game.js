@@ -605,6 +605,20 @@ export function getCorrosionSummary(modules) {
   };
 }
 
+/** Hex key of the module with highest corrosion (for coating jump). */
+export function getWorstCorrosionHex(modules) {
+  let worstKey = null;
+  let worst = -1;
+  for (const [key, mod] of modules) {
+    const c = mod.corrosion ?? 0;
+    if (c > worst) {
+      worst = c;
+      worstKey = key;
+    }
+  }
+  return worstKey;
+}
+
 /** §9 — whether automatic S upkeep is draining sulfur this tick. */
 export function getCorrosionMaintenanceInfo(state) {
   let corrodedCount = 0;
@@ -836,6 +850,32 @@ export function getBuildPanelHint(state) {
   if (state.selectedBuild) return t('panel.buildHintActive');
 
   const inv = state.inventory;
+  const stats = computeStats(state);
+  const solarCount = countModulesOfType(state.modules, 'solar');
+  const isruCount = stats.isruCount;
+  const iron = inv.iron ?? 0;
+  const solarCost = MODULE_TYPES.solar.cost;
+  const solarIron = solarCost?.iron ?? 0;
+
+  // §6.1 / §6.2 — early coaching: Fe → Solar → ISRU (before generic affordable hint)
+  if (solarCount === 0) {
+    if (iron < solarIron) {
+      if (iron >= 1) {
+        return t('panel.buildHintNeedFeForSolar');
+      }
+      const aid = getEarthAidEta(state);
+      if (aid.enabled && aid.etaTicks != null) {
+        return t('isru.intakeHintFeShortWithAid', { eta: aid.etaTicks });
+      }
+      return t('isru.intakeHintFeShort');
+    }
+    if (canAfford(inv, solarCost)) {
+      return t('panel.buildHintSolarFirst');
+    }
+  } else if (isruCount === 0) {
+    return t('panel.buildHintIsruNext');
+  }
+
   const affordable = BUILD_MODULE_TYPES.some((type) => {
     const cost = MODULE_TYPES[type]?.cost;
     return cost && canAfford(inv, cost);
@@ -847,7 +887,7 @@ export function getBuildPanelHint(state) {
       .map((type) => MODULE_TYPES[type]?.cost?.iron)
       .filter((n) => n != null),
   );
-  if ((inv.iron ?? 0) < ironNeed) {
+  if (iron < ironNeed) {
     const aid = getEarthAidEta(state);
     if (aid.enabled && aid.etaTicks != null) {
       return t('isru.intakeHintFeShortWithAid', { eta: aid.etaTicks });
@@ -855,13 +895,6 @@ export function getBuildPanelHint(state) {
     return t('isru.intakeHintFeShort');
   }
 
-  const stats = computeStats(state);
-  const solarCount = countModulesOfType(state.modules, 'solar');
-  const isruCount = stats.isruCount;
-
-  if (solarCount === 0 && canAfford(inv, MODULE_TYPES.solar.cost)) {
-    return t('panel.buildHint');
-  }
   if (isruCount === 0) {
     const isruCost = MODULE_TYPES.isru.cost;
     if (!canAfford(inv, isruCost)) {
