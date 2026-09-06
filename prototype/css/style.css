@@ -736,6 +736,16 @@ body {
   color: var(--amber);
 }
 
+.resource-flow.clickable {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.resource-flow.clickable:hover {
+  color: #f0b87a;
+}
+
 .resource-trade-hint dd {
   display: flex;
   flex-direction: column;
@@ -965,7 +975,10 @@ body {
   pointer-events: none;
   opacity: 0;
   transition: transform 0.3s, opacity 0.3s;
-  white-space: nowrap;
+  white-space: normal;
+  max-width: min(90%, 28rem);
+  text-align: center;
+  line-height: 1.4;
   z-index: 10;
 }
 

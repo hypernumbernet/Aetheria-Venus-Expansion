@@ -437,6 +437,12 @@ function updateUI() {
   const corrosionSummary = getCorrosionSummary(state.modules);
   const corrosionAvgEl = document.getElementById('stat-corrosion');
   const corrosionDetailEl = document.getElementById('stat-corrosion-detail');
+  const hasModuleSelection = state.selectedHex
+    && state.modules.has(state.selectedHex)
+    && !state.selectedBuild;
+  const worstCorrosionKey = getWorstCorrosionHex(state.modules);
+  const worstCorrosionMod = worstCorrosionKey ? state.modules.get(worstCorrosionKey) : null;
+  const worstCorrosionPct = worstCorrosionMod?.corrosion ?? 0;
   if (corrosionAvgEl) {
     corrosionAvgEl.textContent = corrosionSummary.avg.toFixed(1) + '%';
     corrosionAvgEl.className = corrosionSummary.avg >= CORROSION_WARN_THRESHOLD ? 'warning' : '';
@@ -444,7 +450,24 @@ function updateUI() {
   if (corrosionDetailEl) {
     const showWorst = corrosionSummary.max > corrosionSummary.avg + 0.5
       || corrosionSummary.penaltyCount > 0;
-    if (showWorst) {
+    const showCoatingJump = !hasModuleSelection
+      && worstCorrosionPct >= CORROSION_WARN_THRESHOLD
+      && worstCorrosionKey;
+
+    corrosionDetailEl.onclick = null;
+    corrosionDetailEl.classList.remove('clickable');
+
+    if (showCoatingJump) {
+      corrosionDetailEl.textContent = t('panel.coatingJumpWorst', {
+        max: worstCorrosionPct.toFixed(0),
+      });
+      corrosionDetailEl.hidden = false;
+      corrosionDetailEl.className = 'resource-flow warning clickable';
+      corrosionDetailEl.onclick = () => {
+        state = { ...state, selectedHex: worstCorrosionKey, selectedBuild: null };
+        draw();
+      };
+    } else if (showWorst) {
       corrosionDetailEl.textContent = t('panel.corrosionWorst', {
         max: corrosionSummary.max.toFixed(0),
         count: corrosionSummary.penaltyCount,
@@ -477,7 +500,9 @@ function updateUI() {
   if (isruSummaryEl) {
     const detail = getIsruStatusDetail(state);
     const detailsClosed = isruDetailsEl && !isruDetailsEl.open;
-    if (detailsClosed && detail && waitingIsru) {
+    const showSummary = detailsClosed && detail
+      && (waitingIsru || (stats.powerNet < 0 && stats.isruCount > 0));
+    if (showSummary) {
       isruSummaryEl.textContent = detail.split('\n')[0];
       isruSummaryEl.hidden = false;
     } else {
@@ -517,8 +542,17 @@ function updateUI() {
   const sulfurAmount = state.inventory.sulfur ?? 0;
   const canExportSulfur = sulfurAmount >= TRADE_SULFUR_COST;
   if (exportSulfurBtn) {
-    exportSulfurBtn.textContent = t('panel.exportSulfurShort', { cost: TRADE_SULFUR_COST });
-    exportSulfurBtn.disabled = state.gameOver || !canExportSulfur;
+    if (canExportSulfur) {
+      exportSulfurBtn.textContent = t('panel.exportSulfurShort', { cost: TRADE_SULFUR_COST });
+      exportSulfurBtn.title = '';
+    } else {
+      exportSulfurBtn.textContent = t('panel.exportSulfurProgress', {
+        have: sulfurAmount.toFixed(1),
+        need: TRADE_SULFUR_COST,
+      });
+      exportSulfurBtn.title = t('panel.sulfurExportWait');
+    }
+    exportSulfurBtn.disabled = state.gameOver;
   }
 
   const setResource = (id, text) => {
@@ -1182,6 +1216,20 @@ document.addEventListener('keydown', (e) => {
 document.getElementById('isru-details')?.addEventListener('toggle', () => {
   if (state) draw();
 });
+
+function initDetailsAccordion() {
+  const detailsEls = document.querySelectorAll('.status-details');
+  detailsEls.forEach((el) => {
+    el.addEventListener('toggle', () => {
+      if (!el.open) return;
+      detailsEls.forEach((other) => {
+        if (other !== el) other.open = false;
+      });
+    });
+  });
+}
+
+initDetailsAccordion();
 
 onLocaleChange(() => applyLocale());
 
