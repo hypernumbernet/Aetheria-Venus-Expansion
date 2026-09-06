@@ -151,7 +151,8 @@ const STRINGS = {
       otherResources: 'Other resources',
       earthAid: 'Earth Periodic Aid',
       earthAidEta: 'Next aid in {eta} ticks (+{h2o} H₂O, +{iron} Fe)',
-      earthAidNone: 'No periodic aid',
+      earthAidEtaShort: 'Aid {eta}t',
+      earthAidNone: 'No aid',
       sulfurExportWait: 'Sulfur short for export — wait for ISRU acid split',
       buyIron: 'Buy Fe ({price}₵)',
       buyH2o: 'Buy H₂O ({price}₵)',
@@ -159,6 +160,11 @@ const STRINGS = {
       buildShortMaterial: '{material} short',
       buildShortPower: 'power {net}',
       o2Flow: 'Electrolysis +{produce} / life support −{consume} per tick',
+    },
+    confirm: {
+      title: 'Confirm',
+      ok: 'Confirm',
+      cancel: 'Cancel',
     },
     footer: 'CORE intakes CO₂ continuously. ISRU: acid split → H₂, Bosch → C, electrolysis → O₂ only. Buy Fe/H₂O from Earth market.',
     inventory: {
@@ -368,6 +374,7 @@ const STRINGS = {
       otherResources: 'その他の資源',
       earthAid: '地球定期援助',
       earthAidEta: '次の援助まで {eta} ティック（H₂O +{h2o}、Fe +{iron}）',
+      earthAidEtaShort: '援助 {eta}tick',
       earthAidNone: '援助なし',
       sulfurExportWait: '硫黄不足 — ISRU硫酸分解を待つ',
       buyIron: 'Feを買う（{price}₵）',
@@ -376,6 +383,11 @@ const STRINGS = {
       buildShortMaterial: '{material}不足',
       buildShortPower: '電力{net}',
       o2Flow: '電解 +{produce}／生命維持 −{consume}（毎ティック）',
+    },
+    confirm: {
+      title: '確認',
+      ok: '実行',
+      cancel: 'キャンセル',
     },
     footer: 'コアがCO₂を常時採取。ISRU：硫酸分解→H₂、ボッシュ→C、電解→O₂のみ。Fe/H₂Oは地球市場で購入。',
     inventory: {

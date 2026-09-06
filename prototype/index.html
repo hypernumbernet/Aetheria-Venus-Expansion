@@ -63,7 +63,6 @@
                   <span id="stat-corrosion-detail" class="resource-flow" hidden></span>
                 </dd>
               </div>
-              <div><dt data-i18n="panel.earthAid">地球定期援助</dt><dd id="stat-earth-aid">—</dd></div>
             </dl>
             <p id="isru-summary-line" class="isru-summary-line" hidden></p>
             <details id="isru-details" class="status-details">
@@ -83,7 +82,10 @@
           </details>
 
           <section class="panel panel-compact">
-            <h2 data-i18n="panel.resources">資源</h2>
+            <div class="resources-heading-row">
+              <h2 data-i18n="panel.resources">資源</h2>
+              <span id="earth-aid-eta" class="earth-aid-eta" hidden></span>
+            </div>
             <dl class="stats stats-primary">
               <div><dt>H₂O</dt><dd id="res-h2o">—</dd></div>
               <div><dt data-i18n="panel.iron">鉄</dt><dd id="res-iron">—</dd></div>
@@ -113,11 +115,10 @@
                 </div>
               </dl>
             </details>
-            <p id="inventory-export-cue" class="inventory-export-cue" hidden></p>
             <div class="market-shortcuts">
               <button id="btn-buy-iron" type="button" class="action-btn secondary market-shortcut-btn" data-i18n="panel.buyIron">Feを買う</button>
               <button id="btn-buy-h2o" type="button" class="action-btn secondary market-shortcut-btn" data-i18n="panel.buyH2o">H₂Oを買う</button>
-              <button id="btn-export-sulfur" type="button" class="action-btn secondary market-shortcut-btn" hidden data-i18n="panel.exportSulfurShort">S輸出</button>
+              <button id="btn-export-sulfur" type="button" class="action-btn secondary market-shortcut-btn" data-i18n="panel.exportSulfurShort">S輸出</button>
             </div>
             <button id="btn-inventory" class="action-btn inventory-open-btn" data-i18n="panel.inventory">在庫・地球市場（輸出）</button>
           </section>
@@ -127,9 +128,6 @@
           <section class="panel panel-compact panel-build">
             <h2 data-i18n="panel.buildModule">モジュール建設</h2>
             <div class="build-buttons" id="build-buttons"></div>
-            <p class="build-legend"><span class="build-legend-icon shortage">!</span> <span data-i18n="panel.buildLegendShortage">材料不足</span> <span class="build-legend-icon power">⚡</span> <span data-i18n="panel.buildLegendPower">電力不足</span></p>
-            <p class="hint" id="build-hint" hidden data-i18n="panel.buildHint">浮遊大陸に隣接する空きユニットをクリック。</p>
-            <button id="btn-cancel-build" type="button" class="action-btn secondary cancel-build-btn" hidden data-i18n="panel.cancelBuild">建設をキャンセル</button>
           </section>
 
           <section class="panel tick-panel">
@@ -195,6 +193,17 @@
     <p class="dialog-intro" data-i18n="inventory.intro">Fe/H₂O を購入・硫黄を輸出してクレジット獲得（開いている間は時間停止）。</p>
     <div id="inventory-purchase" class="inventory-purchase"></div>
     <div id="inventory-list" class="inventory-list"></div>
+  </dialog>
+
+  <dialog id="confirm-dialog" class="confirm-dialog">
+    <div class="dialog-header">
+      <h2 id="confirm-dialog-title" data-i18n="confirm.title">確認</h2>
+    </div>
+    <p id="confirm-dialog-message" class="dialog-intro"></p>
+    <div class="confirm-dialog-actions">
+      <button id="btn-confirm-cancel" type="button" class="action-btn secondary" data-i18n="confirm.cancel">キャンセル</button>
+      <button id="btn-confirm-ok" type="button" class="action-btn danger" data-i18n="confirm.ok">実行</button>
+    </div>
   </dialog>
 
   <div id="gameover-overlay" class="gameover-overlay" hidden>
