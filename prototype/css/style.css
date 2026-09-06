@@ -591,6 +591,31 @@ body {
   color: var(--amber);
 }
 
+.build-power-line {
+  display: block;
+  font-size: 0.56rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 0.06rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.build-hint-line {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin-top: 0.35rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.build-hint-line[hidden] {
+  display: none;
+}
+
 .build-shortage-badge {
   background: rgba(248, 81, 73, 0.25);
   color: var(--red);

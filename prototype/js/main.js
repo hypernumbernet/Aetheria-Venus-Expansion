@@ -33,6 +33,7 @@ import {
   getBuildPowerPreview,
   formatH2so4Amount,
   getEarthAidEta,
+  getBuildPanelHint,
   getCorrosionPenalties,
   hasCorrosionPenalties,
   getCorrosionSummary,
@@ -115,6 +116,10 @@ function startGame(difficulty = 'normal') {
   newgameDialog.close();
   buildButtons();
   draw();
+  if (!state.startHintShown) {
+    state = { ...state, startHintShown: true };
+    showToast(getBuildPanelHint(state));
+  }
   if (!tickInterval) {
     tickInterval = setInterval(runTick, 1000);
   }
@@ -138,13 +143,13 @@ function applyLocale() {
 function pickToastEvent(events) {
   if (!events?.length) return null;
   const priority = (msg) => {
-    if (msg.includes('沈没') || msg.includes('sank') || msg.includes('Sinking') || msg.includes('sank')) return 0;
+    if (msg.includes('沈没') || msg.includes('sank') || msg.includes('Sinking')) return 0;
     if (msg.includes('援助') || msg.includes('aid arrived') || msg.includes('periodic aid')) return 1;
     if (msg.includes('腐食') || msg.includes('corrosion') || msg.includes('Corrosion')) return 2;
     if (msg.includes('硫酸') || msg.includes('acid') || msg.includes('H₂') || msg.includes('hydrogen')) return 3;
     if (msg.includes('ISRU') || msg.includes('電力不足') || msg.includes('Power deficit')) return 4;
     if (msg.includes('風') || msg.includes('Wind')) return 5;
-    return 5;
+    return 6;
   };
   return [...events].sort((a, b) => priority(a) - priority(b))[0];
 }
@@ -468,9 +473,6 @@ function updateUI() {
     isruDetailEl.textContent = detail ?? '';
     isruDetailEl.hidden = !detail;
   }
-  if (isruDetailsEl && stats.isruCount > 0 && waitingIsru) {
-    isruDetailsEl.open = true;
-  }
   if (isruSummaryEl) {
     const detail = getIsruStatusDetail(state);
     const detailsClosed = isruDetailsEl && !isruDetailsEl.open;
@@ -578,6 +580,7 @@ function updateUI() {
   document.getElementById('tick-counter').textContent = t('tick', { n: state.tick });
 
   const sel = state.selectedHex;
+  const inBuildMode = !!state.selectedBuild;
   const info = document.getElementById('selected-info');
   const mapActionDock = document.getElementById('map-action-dock');
   const selectionActions = document.getElementById('selection-actions');
@@ -588,7 +591,7 @@ function updateUI() {
   const coatingHint = document.getElementById('coating-hint');
   const dismantleBtn = document.getElementById('btn-dismantle');
   const lightenBtn = document.getElementById('btn-carbon-lighten');
-  if (sel && state.modules.has(sel)) {
+  if (sel && state.modules.has(sel) && !inBuildMode) {
     const mod = state.modules.get(sel);
     const isH2Cell = mod.type === 'h2cell';
     info.textContent = formatSelectedInfo(mod, sel);
@@ -653,10 +656,17 @@ function updateUI() {
     }
   }
   if (mapBottomBar) {
-    const showDock = !!(sel && state.modules.has(sel));
-    const showBuild = !!state.selectedBuild;
+    const showDock = !!(sel && state.modules.has(sel) && !inBuildMode);
+    const showBuild = inBuildMode;
     mapBottomBar.hidden = !showDock && !showBuild;
-    mapBottomBar.classList.toggle('compact', showDock && showBuild);
+    mapBottomBar.classList.remove('compact');
+  }
+
+  const buildHintEl = document.getElementById('build-hint-line');
+  if (buildHintEl) {
+    const hint = getBuildPanelHint(state);
+    buildHintEl.textContent = hint;
+    buildHintEl.hidden = !hint;
   }
 }
 
@@ -725,13 +735,12 @@ function buildButtons() {
     btn.className = 'build-btn' + (state.selectedBuild === type ? ' active' : '')
       + (!affordable && !state.gameOver ? ' unaffordable' : '');
     btn.style.borderLeftColor = def.color;
-    btn.disabled = state.gameOver || !affordable;
+    btn.disabled = state.gameOver;
     if (tooltipParts.length) btn.title = tooltipParts.join('\n');
-    btn.innerHTML = `<span class="build-btn-label"><span class="build-btn-title"><strong>${getModuleBuildLabel(type)}</strong></span><small>${formatBuildCostCompact(def.cost)}</small>${reasonHtml}</span>`;
+    btn.innerHTML = `<span class="build-btn-label"><span class="build-btn-title"><strong>${getModuleBuildLabel(type)}</strong></span><small>${formatBuildCostCompact(def.cost)}</small>${powerLine ? `<span class="build-power-line">${powerLine}</span>` : ''}${reasonHtml}</span>`;
     btn.addEventListener('click', () => {
-      if (!canAfford(state.inventory, def.cost)) return;
       const next = state.selectedBuild === type ? null : type;
-      state = { ...state, selectedBuild: next };
+      state = { ...state, selectedBuild: next, selectedHex: next ? null : state.selectedHex };
       buildButtons();
       draw();
     });
@@ -911,7 +920,11 @@ canvas.addEventListener('click', (e) => {
   const { q, r, key } = hit;
 
   if (state.modules.has(key)) {
-    state = { ...state, selectedHex: key };
+    state = {
+      ...state,
+      selectedHex: key,
+      selectedBuild: null,
+    };
     draw();
     return;
   }

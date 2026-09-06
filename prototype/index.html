@@ -41,21 +41,18 @@
           </div>
           <div id="build-mode-banner" class="build-mode-banner" hidden>
             <span id="build-mode-label"></span>
-            <button id="btn-cancel-build-map" type="button" class="build-mode-cancel" data-i18n="panel.cancelBuildShort">Esc</button>
+            <button id="btn-cancel-build-map" type="button" class="build-mode-cancel" data-i18n="panel.cancelBuild">建設をキャンセル</button>
           </div>
         </div>
       </section>
 
       <aside class="sidebar">
         <div class="sidebar-scroll">
-          <details id="continent-status-details" class="panel panel-compact status-details-panel" open>
+          <details id="continent-status-details" class="panel panel-compact status-details-panel">
             <summary data-i18n="panel.continentStatus">浮遊大陸ステータス</summary>
             <dl class="stats stats-primary">
-              <div><dt data-i18n="panel.buoyancy">浮力</dt><dd id="stat-buoyancy">—</dd></div>
-              <div><dt data-i18n="panel.mass">質量</dt><dd id="stat-mass">—</dd></div>
               <div><dt data-i18n="panel.netLift">正味浮力</dt><dd id="stat-net">—</dd></div>
               <div><dt data-i18n="panel.power">電力</dt><dd id="stat-power">—</dd></div>
-              <div><dt data-i18n="panel.windLoad">風荷重</dt><dd id="stat-wind">—</dd></div>
               <div class="stat-corrosion-cell">
                 <dt data-i18n="panel.corrosion">腐食</dt>
                 <dd>
@@ -64,6 +61,14 @@
                 </dd>
               </div>
             </dl>
+            <details id="continent-more-details" class="status-details">
+              <summary data-i18n="panel.statusMore">詳細メトリクス</summary>
+              <dl class="stats">
+                <div><dt data-i18n="panel.buoyancy">浮力</dt><dd id="stat-buoyancy">—</dd></div>
+                <div><dt data-i18n="panel.mass">質量</dt><dd id="stat-mass">—</dd></div>
+                <div><dt data-i18n="panel.windLoad">風荷重</dt><dd id="stat-wind">—</dd></div>
+              </dl>
+            </details>
             <p id="isru-summary-line" class="isru-summary-line" hidden></p>
             <details id="isru-details" class="status-details">
               <summary data-i18n="panel.isruDetails">ISRU・詳細</summary>
@@ -128,6 +133,7 @@
           <section class="panel panel-compact panel-build">
             <h2 data-i18n="panel.buildModule">モジュール建設</h2>
             <div class="build-buttons" id="build-buttons"></div>
+            <p id="build-hint-line" class="build-hint-line" hidden></p>
           </section>
 
           <section class="panel tick-panel">
