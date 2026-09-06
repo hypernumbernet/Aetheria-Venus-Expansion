@@ -835,26 +835,26 @@ function buildButtons() {
     const powerLine = preview ? formatBuildPowerLine(preview) : '';
     const missingLine = formatBuildMissingLine(missing);
     const shortageReason = formatBuildShortageReason(missing, preview);
+    const selected = state.selectedBuild === type;
     const tooltipParts = [];
+    if (shortageReason) tooltipParts.push(shortageReason);
     if (missingLine) tooltipParts.push(missingLine);
     if (powerLine) tooltipParts.push(powerLine);
-    const reasonClass = shortageReason && preview?.wouldDeficit && !missing.length
-      ? 'build-shortage-reason power-only'
-      : 'build-shortage-reason';
-    const reasonHtml = shortageReason
-      ? `<span class="${reasonClass}">${shortageReason}</span>`
-      : '';
     const btn = document.createElement('button');
-    btn.className = 'build-btn' + (state.selectedBuild === type ? ' active' : '')
+    btn.className = 'build-btn' + (selected ? ' active' : '')
       + (!affordable && !state.gameOver ? ' unaffordable' : '');
     btn.style.borderLeftColor = def.color;
     btn.disabled = state.gameOver;
-    btn.setAttribute('aria-pressed', state.selectedBuild === type ? 'true' : 'false');
+    btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
     const ariaLabelParts = [getModuleBuildLabel(type), formatBuildCostCompact(def.cost)];
     if (shortageReason) ariaLabelParts.push(shortageReason);
+    if (powerLine) ariaLabelParts.push(powerLine);
     btn.setAttribute('aria-label', ariaLabelParts.join(', '));
     if (tooltipParts.length) btn.title = tooltipParts.join('\n');
-    btn.innerHTML = `<span class="build-btn-label"><span class="build-btn-title"><strong>${getModuleBuildLabel(type)}</strong></span><small>${formatBuildCostCompact(def.cost)}</small>${powerLine ? `<span class="build-power-line">${powerLine}</span>` : ''}${reasonHtml}</span>`;
+    const powerFaceHtml = selected && powerLine
+      ? `<span class="build-power-line">${powerLine}</span>`
+      : '';
+    btn.innerHTML = `<span class="build-btn-label"><span class="build-btn-title"><strong>${getModuleBuildLabel(type)}</strong></span><small>${formatBuildCostCompact(def.cost)}</small>${powerFaceHtml}</span>`;
     btn.addEventListener('click', () => {
       const next = state.selectedBuild === type ? null : type;
       state = { ...state, selectedBuild: next, selectedHex: next ? null : state.selectedHex };
@@ -1241,11 +1241,21 @@ function clearSelection() {
   return true;
 }
 
+function isInteractiveElementFocused() {
+  const el = document.activeElement;
+  if (!el || el === document.body || el === document.documentElement) return false;
+  const tag = el.tagName;
+  if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return true;
+  if (el.isContentEditable) return true;
+  return el.closest('button, input, select, textarea, [contenteditable="true"]') != null;
+}
+
 document.addEventListener('keydown', (e) => {
   if (e.key === ' ' || e.code === 'Space') {
     if (!gameStarted || !state || state.gameOver) return;
     if (newgameDialog.open || !gameoverOverlay.hidden) return;
     if (confirmDialog.open || inventoryDialog.open || settingsDialog.open) return;
+    if (isInteractiveElementFocused()) return;
     e.preventDefault();
     togglePause();
     return;
