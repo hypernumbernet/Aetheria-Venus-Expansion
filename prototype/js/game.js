@@ -842,6 +842,24 @@ export function countModulesOfType(modules, type) {
   return count;
 }
 
+/** Whether the HUD should offer a one-click Solar build CTA (§4.2). */
+export function isPowerSolarCtaActive(state) {
+  if (state.selectedBuild) return false;
+  const stats = computeStats(state);
+  return stats.powerNet < 0;
+}
+
+/** Hint when an H₂ cell can be extended (§7.3). */
+function getH2ExtendHint(state) {
+  if ((state.inventory.h2 ?? 0) < H2_EXTEND_COST) return null;
+  for (const mod of state.modules.values()) {
+    if (mod.type === 'h2cell' && mod.h2Layers < 4) {
+      return t('panel.buildHintH2Extend');
+    }
+  }
+  return null;
+}
+
 /**
  * Dynamic next-step hint for the build panel (§6.1 / §6.2 / §8).
  * Priority: power deficit → early coaching → post-ISRU bottlenecks → generic.
@@ -912,7 +930,12 @@ export function getBuildPanelHint(state) {
       if (canAfford(inv, h2Cost)) {
         return t('panel.buildHintH2CellLift');
       }
+      const extendHint = getH2ExtendHint(state);
+      if (extendHint) return extendHint;
     }
+
+    const extendHint = getH2ExtendHint(state);
+    if (extendHint) return extendHint;
   }
 
   const affordable = BUILD_MODULE_TYPES.some((type) => {

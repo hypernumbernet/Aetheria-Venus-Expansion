@@ -34,6 +34,7 @@ import {
   formatH2so4Amount,
   getEarthAidEta,
   getBuildPanelHint,
+  isPowerSolarCtaActive,
   getWorstCorrosionHex,
   getCorrosionPenalties,
   hasCorrosionPenalties,
@@ -74,6 +75,7 @@ const ctx = canvas.getContext('2d');
 
 let state = null;
 let gameStarted = false;
+let gamePaused = false;
 let hoverHex = null;
 let toastTimer = null;
 let particles = [];
@@ -114,8 +116,10 @@ function getSelectedDifficulty() {
 function startGame(difficulty = 'normal') {
   state = createInitialState(difficulty);
   gameStarted = true;
+  gamePaused = false;
   newgameDialog.close();
   buildButtons();
+  updatePauseUi();
   draw();
   if (!state.startHintShown) {
     state = { ...state, startHintShown: true };
@@ -133,9 +137,45 @@ function syncLocaleRadios() {
   }
 }
 
+function enterSolarBuildMode() {
+  if (!state || state.gameOver || state.selectedBuild === 'solar') return;
+  state = { ...state, selectedBuild: 'solar', selectedHex: null };
+  buildButtons();
+  draw();
+}
+
+function bindPowerSolarCta(el) {
+  if (!el) return;
+  const active = isPowerSolarCtaActive(state);
+  el.onclick = null;
+  el.classList.remove('clickable', 'power-cta');
+  if (active) {
+    el.classList.add('clickable', 'power-cta');
+    el.onclick = () => enterSolarBuildMode();
+  }
+}
+
+function updatePauseUi() {
+  const pauseBtn = document.getElementById('btn-pause');
+  const tickPanel = document.querySelector('.tick-panel');
+  if (pauseBtn) {
+    pauseBtn.textContent = gamePaused ? t('resume') : t('pause');
+    pauseBtn.setAttribute('aria-pressed', gamePaused ? 'true' : 'false');
+    pauseBtn.setAttribute('aria-label', gamePaused ? t('resume') : t('pause'));
+  }
+  tickPanel?.classList.toggle('paused', gamePaused);
+}
+
+function togglePause() {
+  if (!gameStarted || !state || state.gameOver) return;
+  gamePaused = !gamePaused;
+  updatePauseUi();
+}
+
 function applyLocale() {
   applyStaticI18n();
   syncLocaleRadios();
+  updatePauseUi();
   if (gameStarted) buildButtons();
   if (inventoryDialog.open) renderInventoryList();
   draw();
@@ -496,6 +536,7 @@ function updateUI() {
     const detail = getIsruStatusDetail(state);
     isruDetailEl.textContent = detail ?? '';
     isruDetailEl.hidden = !detail;
+    bindPowerSolarCta(isruDetailEl);
   }
   if (isruSummaryEl) {
     const detail = getIsruStatusDetail(state);
@@ -505,8 +546,11 @@ function updateUI() {
     if (showSummary) {
       isruSummaryEl.textContent = detail.split('\n')[0];
       isruSummaryEl.hidden = false;
+      bindPowerSolarCta(isruSummaryEl);
     } else {
       isruSummaryEl.hidden = true;
+      isruSummaryEl.onclick = null;
+      isruSummaryEl.classList.remove('clickable', 'power-cta');
     }
   }
   if (acidProgressWrap && acidProgressBar) {
@@ -616,7 +660,9 @@ function updateUI() {
     buyH2oBtn.disabled = state.gameOver;
   }
 
-  document.getElementById('tick-counter').textContent = t('tick', { n: state.tick });
+  document.getElementById('tick-counter').textContent = gamePaused
+    ? t('paused')
+    : t('tick', { n: state.tick });
 
   const sel = state.selectedHex;
   const inBuildMode = !!state.selectedBuild;
@@ -645,13 +691,10 @@ function updateUI() {
       }
     }
     coatingBtn.disabled = state.gameOver
-      || (state.inventory.sulfur ?? 0) < COATING_S_COST
-      || mod.corrosion <= 0;
+      || (state.inventory.sulfur ?? 0) < COATING_S_COST;
     if (coatingBtn.disabled && !state.gameOver) {
       if ((state.inventory.sulfur ?? 0) < COATING_S_COST) {
         coatingBtn.title = t('panel.coatingDisabledNoSulfur', { amount: COATING_S_COST });
-      } else if (mod.corrosion <= 0) {
-        coatingBtn.title = t('panel.coatingDisabledNoCorrosion');
       } else {
         coatingBtn.title = '';
       }
@@ -736,6 +779,7 @@ function updateUI() {
     const hint = getBuildPanelHint(state);
     buildHintEl.textContent = hint;
     buildHintEl.hidden = !hint;
+    bindPowerSolarCta(buildHintEl);
   }
 }
 
@@ -938,7 +982,8 @@ function hexUnderPointer(layoutX, layoutY) {
 }
 
 function isTickPaused() {
-  return newgameDialog.open
+  return gamePaused
+    || newgameDialog.open
     || inventoryDialog.open
     || settingsDialog.open
     || confirmDialog.open
@@ -1102,6 +1147,8 @@ document.getElementById('btn-cancel-build-map')?.addEventListener('click', () =>
   cancelConstructionMode();
 });
 
+document.getElementById('btn-pause')?.addEventListener('click', () => togglePause());
+
 document.getElementById('btn-settings').addEventListener('click', () => {
   if (state?.gameOver) return;
   syncLocaleRadios();
@@ -1169,6 +1216,7 @@ newgameDialog.addEventListener('close', () => {
 
 document.getElementById('btn-restart').addEventListener('click', () => {
   gameStarted = false;
+  gamePaused = false;
   state = null;
   particles = [];
   inventoryDialog.close();
@@ -1194,6 +1242,14 @@ function clearSelection() {
 }
 
 document.addEventListener('keydown', (e) => {
+  if (e.key === ' ' || e.code === 'Space') {
+    if (!gameStarted || !state || state.gameOver) return;
+    if (newgameDialog.open || !gameoverOverlay.hidden) return;
+    if (confirmDialog.open || inventoryDialog.open || settingsDialog.open) return;
+    e.preventDefault();
+    togglePause();
+    return;
+  }
   if (e.key !== 'Escape') return;
   if (newgameDialog.open || gameoverOverlay.hidden === false) return;
   if (confirmDialog.open) {
@@ -1234,5 +1290,6 @@ initDetailsAccordion();
 onLocaleChange(() => applyLocale());
 
 applyLocale();
+updatePauseUi();
 newgameDialog.showModal();
 draw();
