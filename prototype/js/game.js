@@ -844,7 +844,7 @@ export function countModulesOfType(modules, type) {
 
 /**
  * Dynamic next-step hint for the build panel (§6.1 / §6.2 / §8).
- * Wires existing i18n keys — no new copy.
+ * Priority: power deficit → early coaching → post-ISRU bottlenecks → generic.
  */
 export function getBuildPanelHint(state) {
   if (state.selectedBuild) return t('panel.buildHintActive');
@@ -856,6 +856,24 @@ export function getBuildPanelHint(state) {
   const iron = inv.iron ?? 0;
   const solarCost = MODULE_TYPES.solar.cost;
   const solarIron = solarCost?.iron ?? 0;
+
+  // §4.2 — power deficit: recommend Solar before anything else
+  if (stats.powerNet < 0) {
+    if (canAfford(inv, solarCost)) {
+      return t('panel.powerDeficitSolar');
+    }
+    if (iron < solarIron) {
+      if (iron >= 1) {
+        return t('panel.buildHintNeedFeForSolar');
+      }
+      const aid = getEarthAidEta(state);
+      if (aid.enabled && aid.etaTicks != null) {
+        return t('isru.intakeHintFeShortWithAid', { eta: aid.etaTicks });
+      }
+      return t('isru.intakeHintFeShort');
+    }
+    return t('panel.powerDeficitSolar');
+  }
 
   // §6.1 / §6.2 — early coaching: Fe → Solar → ISRU (before generic affordable hint)
   if (solarCount === 0) {
@@ -874,6 +892,27 @@ export function getBuildPanelHint(state) {
     }
   } else if (isruCount === 0) {
     return t('panel.buildHintIsruNext');
+  }
+
+  // Post-ISRU priority queue (§4.2 / §8.4 / §7.3)
+  if (isruCount > 0) {
+    const status = state.isruWaitStatus ?? analyzeIsruBottleneck(inv);
+
+    if (status === 'waitingAcid') {
+      const intakeHint = getIntakeAccelHint(state);
+      if (intakeHint) return intakeHint;
+    }
+
+    if ((inv.sulfur ?? 0) >= TRADE_SULFUR_COST) {
+      return t('panel.sulfurExportHint');
+    }
+
+    if (stats.netLift < 0) {
+      const h2Cost = MODULE_TYPES.h2cell.cost;
+      if (canAfford(inv, h2Cost)) {
+        return t('panel.buildHintH2CellLift');
+      }
+    }
   }
 
   const affordable = BUILD_MODULE_TYPES.some((type) => {
@@ -1014,7 +1053,12 @@ export function getIsruStatusLabel(state) {
 /** Secondary ISRU HUD lines (acid progress, intake hint, fallback electrolysis). */
 export function getIsruStatusDetail(state) {
   const stats = computeStats(state);
-  if (stats.isruCount <= 0 || stats.powerNet < 0) return null;
+  if (stats.isruCount <= 0) return null;
+
+  // §4.2 — persistent CTA while power-negative (not only transition toast)
+  if (stats.powerNet < 0) {
+    return t('panel.powerDeficitSolar');
+  }
 
   const h2so4 = state.inventory.h2so4 ?? 0;
   if (h2so4 >= 1) return null;
