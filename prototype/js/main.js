@@ -34,6 +34,7 @@ import {
   formatH2so4Amount,
   getEarthAidEta,
   getBuildPanelHint,
+  getWorstCorrosionHex,
   getCorrosionPenalties,
   hasCorrosionPenalties,
   getCorrosionSummary,
@@ -502,7 +503,11 @@ function updateUI() {
       earthAidEl.className = 'earth-aid-eta none';
       earthAidEl.hidden = false;
     } else {
-      earthAidEl.textContent = t('panel.earthAidEtaShort', { eta: aid.etaTicks });
+      earthAidEl.textContent = t('panel.earthAidEtaShort', {
+        eta: aid.etaTicks,
+        h2o: aid.amounts.h2o,
+        iron: aid.amounts.iron,
+      });
       earthAidEl.className = 'earth-aid-eta';
       earthAidEl.hidden = false;
     }
@@ -608,11 +613,41 @@ function updateUI() {
     coatingBtn.disabled = state.gameOver
       || (state.inventory.sulfur ?? 0) < COATING_S_COST
       || mod.corrosion <= 0;
+    if (coatingBtn.disabled && !state.gameOver) {
+      if ((state.inventory.sulfur ?? 0) < COATING_S_COST) {
+        coatingBtn.title = t('panel.coatingDisabledNoSulfur', { amount: COATING_S_COST });
+      } else if (mod.corrosion <= 0) {
+        coatingBtn.title = t('panel.coatingDisabledNoCorrosion');
+      } else {
+        coatingBtn.title = '';
+      }
+    } else {
+      coatingBtn.title = t('panel.applyCoating');
+    }
     if (coatingHint) {
       const showHint = mod.corrosion >= CORROSION_WARN_THRESHOLD
         && (mod.coatedTicks ?? 0) <= 0;
       coatingHint.hidden = !showHint;
-      if (showHint) coatingHint.textContent = t('panel.coatingHint');
+      if (showHint) {
+        const worstKey = getWorstCorrosionHex(state.modules);
+        const worstMod = worstKey ? state.modules.get(worstKey) : null;
+        const worstCorrosion = worstMod?.corrosion ?? 0;
+        if (worstKey && worstKey !== sel && worstCorrosion >= CORROSION_WARN_THRESHOLD) {
+          coatingHint.textContent = t('panel.coatingJumpWorst', { max: worstCorrosion.toFixed(0) });
+          coatingHint.classList.add('clickable');
+          coatingHint.onclick = () => {
+            state = { ...state, selectedHex: worstKey, selectedBuild: null };
+            draw();
+          };
+        } else {
+          coatingHint.textContent = t('panel.coatingHint');
+          coatingHint.classList.remove('clickable');
+          coatingHint.onclick = null;
+        }
+      } else {
+        coatingHint.classList.remove('clickable');
+        coatingHint.onclick = null;
+      }
     }
     if (dismantleBtn) {
       dismantleBtn.disabled = state.gameOver || mod.type === 'core';
@@ -736,6 +771,10 @@ function buildButtons() {
       + (!affordable && !state.gameOver ? ' unaffordable' : '');
     btn.style.borderLeftColor = def.color;
     btn.disabled = state.gameOver;
+    btn.setAttribute('aria-pressed', state.selectedBuild === type ? 'true' : 'false');
+    const ariaLabelParts = [getModuleBuildLabel(type), formatBuildCostCompact(def.cost)];
+    if (shortageReason) ariaLabelParts.push(shortageReason);
+    btn.setAttribute('aria-label', ariaLabelParts.join(', '));
     if (tooltipParts.length) btn.title = tooltipParts.join('\n');
     btn.innerHTML = `<span class="build-btn-label"><span class="build-btn-title"><strong>${getModuleBuildLabel(type)}</strong></span><small>${formatBuildCostCompact(def.cost)}</small>${powerLine ? `<span class="build-power-line">${powerLine}</span>` : ''}${reasonHtml}</span>`;
     btn.addEventListener('click', () => {
@@ -1127,7 +1166,14 @@ document.addEventListener('keydown', (e) => {
     resolveConfirm(false);
     return;
   }
-  if (inventoryDialog.open || settingsDialog.open) return;
+  if (inventoryDialog.open) {
+    inventoryDialog.close();
+    return;
+  }
+  if (settingsDialog.open) {
+    settingsDialog.close();
+    return;
+  }
   if (!gameStarted || !state) return;
   if (cancelConstructionMode()) return;
   clearSelection();

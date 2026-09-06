@@ -325,6 +325,10 @@ body {
   font-size: 0.75rem;
 }
 
+.status-primary-panel {
+  padding-top: 0.45rem;
+}
+
 .status-details-panel {
   padding-top: 0.45rem;
 }
@@ -811,6 +815,17 @@ body {
 .coating-hint-inline {
   margin: 0;
   font-size: 0.68rem;
+}
+
+.coating-hint-inline.clickable {
+  cursor: pointer;
+  color: var(--amber);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.coating-hint-inline.clickable:hover {
+  color: #f0b87a;
 }
 
 .selection-actions .action-btn {
