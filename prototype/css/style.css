@@ -511,16 +511,16 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 0;
-  padding: 0.22rem 0.28rem;
+  padding: 0.18rem 0.26rem;
   background: #21262d;
   border: 1px solid var(--border);
   border-radius: 5px;
   color: var(--text);
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s, background 0.15s;
-  min-height: 1.95rem;
+  min-height: 1.85rem;
   min-width: 0;
   overflow: hidden;
   border-left-width: 3px;
@@ -614,6 +614,19 @@ body {
   margin-top: 0.35rem;
   padding-top: 0.25rem;
   border-top: 1px solid var(--border);
+}
+
+.build-hint-line.clickable,
+.isru-summary-line.clickable,
+.isru-detail.clickable {
+  cursor: pointer;
+  color: var(--amber);
+}
+
+.build-hint-line.clickable:hover,
+.isru-summary-line.clickable:hover,
+.isru-detail.clickable:hover {
+  text-decoration: underline;
 }
 
 .build-hint-line[hidden] {
@@ -911,8 +924,37 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+.tick-panel.paused #tick-counter {
+  color: var(--amber);
+  font-weight: 600;
+}
+
+.pause-btn {
+  flex-shrink: 0;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.68rem;
+  font-family: inherit;
+  color: var(--text-muted);
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.pause-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+}
+
+.tick-panel.paused .pause-btn {
+  color: var(--amber);
+  border-color: var(--amber);
 }
 
 .footer {
