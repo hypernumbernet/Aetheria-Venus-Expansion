@@ -5,7 +5,9 @@
 **Title**: Aetheria: Venus Expansion
 **Genre**: Colony Simulation / Base Builder / Resource Management / Exploration
 **Platform**: 2D browser game (HTML5 canvas, top-down or isometric hex map, 2D UI overlays)
-**Core Concept**: Players build and expand a modular floating continent on Venus at ~50km altitude using ISRU from atmospheric (H₂SO₄, CO₂, N₂) and surface resources. The goal is to grow hexagonal prism units into a thriving floating continent—optionally achieving full self-sufficiency as a proud engineering milestone while Earth remains a cooperative partner.
+**Core Concept**: Players build and expand a modular floating continent on Venus at ~50km altitude using ISRU from atmospheric (H₂SO₄, CO₂, N₂) and—eventually—surface resources. The long-term goal is to grow linked **small hex modules** (~100 m² floor area each) into a thriving floating continent, optionally achieving full self-sufficiency while Earth remains a cooperative partner.
+
+> **Playable rules**: The browser prototype (`prototype/`) implements a subset of this vision. For **scale, terminology, and live numbers**, the Japanese rules document **[ゲームルール.md](./ゲームルール.md)** is authoritative; this GDD retains long-term design intent where it does not contradict the prototype.
 
 **Unique Features**:
 - Physics-based buoyancy and weight management (extendable upper H₂ layer)
@@ -71,7 +73,10 @@ This layered structure ensures players feel constant agency and reward: short-te
 ## 4. Key Systems
 
 ### Modular Units
-Each 40m hexagonal prism unit serves as a self-contained voxel in the growing continent. Vertical zoning is fully player-directed: the extendable upper H₂ layer provides buoyancy that scales with envelope volume and gas pressure (visual gas cells inflate satisfyingly); the middle layer hosts configurable residential, agricultural, or research modules with windowed views of Venusian clouds for crew morale bonuses; the lower industrial layer integrates dual-use aerodynamic fins that double as heat radiators and propulsion surfaces. Connections use articulated, corrosion-proof joints that transmit power, data, and resources while flexing under wind loads—players witness stress visualizations and can reinforce proactively. Satisfaction arises from creative layouts (organic vs grid patterns), real-time physics feedback during construction (wobble warnings, buoyancy recalculations), and milestone "continent growth" animations when modules link successfully. Units can be upgraded in-place with new skins and functions unlocked via materials tech, encouraging iterative redesign.
+
+**Long-term vision**: Each hex unit is a small floating module (~**100 m² floor area**, not a 40 m prism) in a growing **floating continent** (the connected assembly). Vertical zoning, residential gardens, industrial fins, and articulated joints are design targets for full production.
+
+**Implemented prototype** (`prototype/`): Flat-top hex map; five module types (CORE, Atmospheric Intake, ISRU Refinery, Solar Array, H₂ Buoyancy Cell). H₂ cells support up to **4 envelope layers** (extend/lower with hydrogen cost). Per-module actions: sulfur coating, carbon lightening (×3), dismantle with partial iron refund. See [ゲームルール.md](./ゲームルール.md) §6 for costs and stats.
 
 ### Resources & ISRU
 Resource chains are deep, branching, and visually rich. Atmospheric scoops harvest H₂SO₄ mists that feed multi-stage refineries: electrolysis yields H₂ (for buoyancy and fuel cells), sulfur (coatings, composites), and reclaimed water; CO₂ Sabatier and Bosch reactors produce CH₄, O₂, carbon black, and eventually advanced polymers. Surface expeditions return basaltic rock and iron sulfates processed into sulfur concrete, phosphorus fertilizers, and trace metals. By-product synergies create "aha" moments—excess sulfur protects new builds, waste heat warms greenhouses, or CO₂-derived plastics enable lighter modules. Players optimize refinery recipes, storage buffers, and drone logistics routes on a live flow diagram, with color-coded efficiency scores and waste-heat recovery stats. Dynamic events (acid rain spikes, wind-driven dilution) force adaptive rerouting, rewarding foresight and creating emergent storytelling through automated log entries.
@@ -234,24 +239,103 @@ Major accomplishments—new continent tier, successful self-sufficiency mileston
 ### UI and Feedback Polish
 All interface elements adopt a clean, holographic aesthetic with subtle scan-line and lens-flare touches that feel both futuristic and slightly magical. Resource flow diagrams pulse gently when efficiency improves. Damage or stress warnings appear as elegant amber glyphs rather than harsh red alerts. These small touches maintain readability while preserving the overall tone of hopeful, almost fantastical human ingenuity against the vast Venusian backdrop.
 
-## 9. Documentation Hierarchy & Terminology (Next Sprint)
+## 9. Documentation Hierarchy & Terminology
 
-**Playable rules source of truth**: For the next prototype sprint, the Japanese rules document **[ゲームルール.md](./ゲームルール.md)** overrides this GDD where they differ—especially **scale**, **terminology**, and **atmospheric resource handling**.
+**Playable rules source of truth**: **[ゲームルール.md](./ゲームルール.md)** (Japanese) overrides this GDD where they differ—especially **scale**, **terminology**, **atmospheric handling**, and **prototype numbers**.
 
-| Topic | GDD (this file) | ゲームルール.md (authoritative for sprint) |
-|-------|-----------------|---------------------------------------------|
-| One hex on the map | Historically described as a "40m hexagonal prism unit" | A **small module** with **~100 m² floor area** (regular hex ≈ 6.2 m side). Never called a continent. |
-| Floating continent | Growth of linked modules | The **connected assembly** of many units only (**浮遊大陸**). |
-| Atmospheric harvest | Various chains | **CO₂-first** mix from real Venus composition; **CO₂** and **C** as first-class elements; **CORE** passive intake. |
-| Iron | Surface / trade | Not atmospheric; **required to build**; Earth market is a hopeful partner (no dwindling support). **Difficulty** sets free periodic **H₂O + Fe** aid only (see ゲームルール.md §8). |
+| Topic | GDD (this file) | ゲームルール.md (authoritative for play) |
+|-------|-----------------|------------------------------------------|
+| One hex on the map | Long-term: layered habitat/industrial module | **~100 m² floor area** small module. Never called a continent. |
+| Floating continent | Campaign growth target | **Connected assembly** of many units (**浮遊大陸**). |
+| Atmospheric harvest | Full ISRU chains (design) | **CO₂-dominant** intake + **H₂SO₄** trace; **CORE** passive intake rates in §3.2. |
+| Iron | Surface / trade (design) | Not atmospheric; **required to build**; Earth aid + market. No dwindling support. |
+| Carbon | Tech-tree composites (design) | **Playable**: Bosch → C; used in builds and lightening. |
 
-Implementers should read ゲームルール.md before changing prototype behavior. Short GDD edits (like this section) may be added to reduce contradiction; a full GDD rewrite is not required each sprint.
+Implementers should read ゲームルール.md before changing `prototype/` behavior.
 
-## 10. Prototype Sprint Notes
+## 10. Implemented Prototype Rules (`prototype/`)
 
-The browser prototype (`prototype/`) validates core tension loops before full production:
+This section summarizes what the live browser build does today (post–PR #25, `main`). Full tables and citations remain in ゲームルール.md.
 
-- **Construction costs inventory** — Placing ISRU, solar, or H₂ modules deducts catalog materials (H₂SO₄, H₂, sulfur, iron). Iron is required for every buildable module and is purchased from the Earth market in this sprint. Players cannot build without sufficient holdings; starting stock is intentionally tight.
-- **Earth as a market** — Credits purchase materials (including iron) from Earth; sulfur exports earn credits. Earth is a cooperative trading partner, not a dwindling lifeline.
-- **Game over: sinking** — When net buoyancy (lift − mass) stays negative for a short countdown (~10 ticks), the floating continent sinks. Tone is hopeful retry, not abandonment.
-- **Next sprint** — Carbon material loop (stubbed in catalog as locked); surface iron mining as an alternative to Earth purchase.
+### 10.1 Session & Time
+
+- **1 tick = 1 real-time second** while unpaused.
+- **Pause**: button or **Space** (ignored when focus is on buttons/inputs). Ticks also pause while Inventory, Settings, Confirm, or Game Over UI is open.
+- **New game**: choose **Easy / Normal / Hard** (locks Earth periodic aid for the run). **Esc** cancels build mode or clears selection.
+
+### 10.2 Map & Modules
+
+- Axial **flat-top hex** grid; build only on hexes **adjacent** to the floating continent.
+- **CORE** at start: continuous intake, cannot be dismantled.
+- Buildable modules (all require **iron** in cost):
+
+| Module | Mass | Lift | Power (gen/use) | Build cost |
+|--------|------|------|-----------------|------------|
+| Atmospheric Intake | 8 | 6 | 0 / 2 | Fe 2, C 1, S 1 |
+| ISRU Refinery | 10 | 8 | 0 / 8 | Fe 2, S 1 |
+| Solar Array | 6 | 5 | 15 / 0 | Fe 2 |
+| H₂ Buoyancy Cell | 8 | 14 | 0 / 1 | Fe 1, H₂ 1, C 1 |
+
+- **H₂ cell extend**: −3 H₂, +8 lift, +4 wind load per layer (max 4 layers). **Lower** reverses layers without H₂ refund.
+- **Dismantle**: 25% iron refund (min 1 t if iron was in cost); cannot break continent connectivity.
+
+### 10.3 Resources & ISRU
+
+**Inventory (active)**: CO₂, C, N₂, H₂SO₄, S, H₂, O₂, H₂O, Fe, Earth credits.
+
+**Intake per unit per tick** (CORE = 1 unit; each Intake adds 1): CO₂ 2.0, N₂ 0.073, H₂SO₄ 0.0045, H₂O 0.0004.
+
+**ISRU per refinery per tick** (requires power net ≥ 0), priority order:
+
+1. Acid split: −1 H₂SO₄ → +2.2 H₂, +0.5 S, +0.4 H₂O  
+2. Bosch: −1 CO₂, −1 H₂ (keeps **1 H₂ reserve** for buoyancy) → +1 C, +0.8 H₂O  
+3. Fallback electrolysis: −1 CO₂ → +0.1 O₂  
+
+CORE life support consumes **0.7 O₂/tick** while CORE exists.
+
+**Cargo mass**: stored Fe, H₂O, S, H₂, O₂, H₂SO₄ add **0.05 t structure mass per 1 t** held; vent 1 t batches from Inventory.
+
+**Not implemented as playable loops**: CO harvest, Sabatier, N-fixation, surface mining.
+
+### 10.4 Buoyancy & Game Over
+
+- **Net lift** = total buoyancy − total mass (modules + cargo + corrosion/wind penalties).
+- If net lift **&lt; 0** for **10 consecutive ticks**, game over (sinking). Warning at tick 5. Recovery resets countdown.
+- **Carbon lightening** on selected module: −1 C, −2 mass, +2 lift (max 3× per module).
+
+### 10.5 Earth Partnership
+
+**Periodic aid** every **120 ticks** (difficulty only; no decay):
+
+| Difficulty | H₂O | Fe |
+|------------|-----|-----|
+| Easy | +4 | +2 |
+| Normal | +2 | +1 |
+| Hard | 0 | 0 |
+
+**Earth market** (all difficulties): buy Fe **6₵**, H₂O **5₵**; export **2 t S → 6₵**. HUD shows aid ETA and build/market shortcuts.
+
+**Starting stock**: Easy/Normal — 30₵, 2 H₂SO₄, 1 S, 0 Fe; Hard — 12₵, 2 H₂SO₄, 2 S, 2 Fe.
+
+Tone: Earth is a **hopeful partner**; difficulty is aid volume, not abandonment.
+
+### 10.6 Corrosion & Wind
+
+- Corrosion **0–100%** per module; rises ~0.3%/tick (slower with sulfur coating or automatic S upkeep when corroded modules &gt;10% and S stock &gt;1).
+- **Sulfur coating**: −1 S, −25% corrosion, 20-tick slow rise (preventive/repair).
+- **S upkeep**: 0.05 S/tick when maintenance active.
+- **Wind load** from H₂ cells; above **12** → −3 power net and extra corrosion; **shear warning** if load &gt;15 and net lift &lt;10.
+- Penalty bands at 50% / 75% / 90% corrosion (power, mass, lift debuffs). No instant module destruction.
+
+### 10.7 Vision vs Implemented (intentional split)
+
+| System | GDD long-term | Prototype today |
+|--------|---------------|-----------------|
+| Unit scale | Layered 40 m+ prism (deprecated term) | ~100 m² hex module |
+| Exploration | Submarine surface vehicle | Not implemented |
+| Tech tree / AI compute | Six tiers | Not implemented |
+| Agriculture / population | N-P-K, closed loop | O₂ sink only |
+| Trade | Reputation-scaled shipments | Fixed aid + sulfur export market |
+| Win state | Legacy score, ceremonies | Survival / expansion sandbox only |
+
+The prototype validates **inventory tension**, **ISRU bottlenecks (H₂SO₄ → H₂ → Bosch)**, **power budgeting**, **buoyancy vs wind/corrosion**, and **Earth aid vs market**—not the full campaign arc described in §§3–8.
