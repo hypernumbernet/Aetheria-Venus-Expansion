@@ -213,6 +213,9 @@ export function createInitialState(difficulty = 'normal') {
     isruWaitStatus: 'noIsru',
     corrosionWarnLevel: 0,
     sUpkeepActive: false,
+    windDamageActive: false,
+    windShearActive: false,
+    startHintShown: false,
   };
 }
 
@@ -816,6 +819,67 @@ export function countExtraIntakeModules(modules) {
   return count;
 }
 
+/** Count placed modules of a given type. */
+export function countModulesOfType(modules, type) {
+  let count = 0;
+  for (const mod of modules.values()) {
+    if (mod.type === type) count++;
+  }
+  return count;
+}
+
+/**
+ * Dynamic next-step hint for the build panel (§6.1 / §6.2 / §8).
+ * Wires existing i18n keys — no new copy.
+ */
+export function getBuildPanelHint(state) {
+  if (state.selectedBuild) return t('panel.buildHintActive');
+
+  const inv = state.inventory;
+  const affordable = BUILD_MODULE_TYPES.some((type) => {
+    const cost = MODULE_TYPES[type]?.cost;
+    return cost && canAfford(inv, cost);
+  });
+  if (affordable) return t('panel.buildHint');
+
+  const ironNeed = Math.min(
+    ...BUILD_MODULE_TYPES
+      .map((type) => MODULE_TYPES[type]?.cost?.iron)
+      .filter((n) => n != null),
+  );
+  if ((inv.iron ?? 0) < ironNeed) {
+    const aid = getEarthAidEta(state);
+    if (aid.enabled && aid.etaTicks != null) {
+      return t('isru.intakeHintFeShortWithAid', { eta: aid.etaTicks });
+    }
+    return t('isru.intakeHintFeShort');
+  }
+
+  const stats = computeStats(state);
+  const solarCount = countModulesOfType(state.modules, 'solar');
+  const isruCount = stats.isruCount;
+
+  if (solarCount === 0 && canAfford(inv, MODULE_TYPES.solar.cost)) {
+    return t('panel.buildHint');
+  }
+  if (isruCount === 0) {
+    const isruCost = MODULE_TYPES.isru.cost;
+    if (!canAfford(inv, isruCost)) {
+      const missing = getMissingMaterials(inv, isruCost);
+      const ids = new Set(missing.map((m) => m.id));
+      if (ids.has('sulfur')) return t('isru.intakeHintSulfurShort');
+      if (ids.has('carbon')) return t('isru.intakeHintCarbonShort');
+    }
+    const preview = getBuildPowerPreview(state, 'isru');
+    if (preview?.wouldDeficit && solarCount === 0) {
+      return t('panel.buildHintShortage');
+    }
+    if (canAfford(inv, isruCost)) return t('panel.buildHint');
+  }
+
+  return t('panel.buildHintShortage');
+}
+
 /** Intake build hint when waiting on acid — only if no extra intake exists yet (§6.3 / §6.2 / §8). */
 export function getIntakeAccelHint(state) {
   if (countExtraIntakeModules(state.modules) > 0) return null;
@@ -1005,9 +1069,10 @@ export function gameTick(state) {
   // O₂ life-support sink while CORE is operational (§4.2 / §7.1)
   inventory = applyO2LifeSupport(inventory, modules);
 
-  // Wind-load corrosion stress (§7.1 / §9)
-  const windCorrosionExtra = stats.windLoad > WIND_DAMAGE_THRESHOLD ? WIND_EXTRA_CORROSION : 0;
-  if (windCorrosionExtra > 0 && stats.windLoad > WIND_DAMAGE_THRESHOLD) {
+  // Wind-load corrosion stress (§7.1 / §9) — toast only on transition into high wind
+  const windDamageActive = stats.windLoad > WIND_DAMAGE_THRESHOLD;
+  const windCorrosionExtra = windDamageActive ? WIND_EXTRA_CORROSION : 0;
+  if (windDamageActive && !(state.windDamageActive ?? false)) {
     events.push(t('msg.windDamage'));
   }
 
@@ -1041,8 +1106,9 @@ export function gameTick(state) {
     modules.set(key, { ...mod, corrosion: c, coatedTicks });
   }
 
-  // Wind stress warning
-  if (stats.windLoad > 15 && stats.netLift < 10) {
+  // Wind stress warning — toast only on transition
+  const windShearActive = stats.windLoad > 15 && stats.netLift < 10;
+  if (windShearActive && !(state.windShearActive ?? false)) {
     events.push(t('msg.windShear'));
   }
 
@@ -1074,11 +1140,8 @@ export function gameTick(state) {
 
   if (stats.netLift < 0) {
     sinkCountdown += 1;
-    const remaining = SINK_COUNTDOWN_MAX - sinkCountdown;
     if (sinkCountdown === SINK_WARNING_AT) {
       events.push(t('msg.sinkStart'));
-    } else if (remaining > 0 && sinkCountdown > SINK_WARNING_AT) {
-      events.push(t('msg.sinkCountdown', { remaining }));
     } else if (sinkCountdown >= SINK_COUNTDOWN_MAX) {
       gameOver = true;
       events.push(t('msg.sank'));
@@ -1102,6 +1165,8 @@ export function gameTick(state) {
     isruWaitStatus,
     corrosionWarnLevel,
     sUpkeepActive,
+    windDamageActive,
+    windShearActive,
   };
 }
 
