@@ -1,9 +1,7 @@
 import {
-  HEX_DRAW_RADIUS,
   hexKey,
   hexToPixel,
   hexAtPixel,
-  drawHex,
 } from './hex.js';
 import {
   createInitialState,
@@ -69,6 +67,13 @@ import {
   applyStaticI18n,
   costSeparator,
 } from './i18n.js';
+import {
+  drawVenusSky,
+  drawMistMotes,
+  drawViewportVignette,
+  drawOccupiedHex,
+  drawEmptyHex,
+} from './render.js';
 
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
@@ -868,33 +873,21 @@ function buildButtons() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  grad.addColorStop(0, '#3d2010');
-  grad.addColorStop(0.5, '#2a1510');
-  grad.addColorStop(1, '#1a0e0a');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.globalAlpha = 0.08;
   const tick = state?.tick ?? 0;
-  for (let i = 0; i < 5; i++) {
-    ctx.fillStyle = '#f0883e';
-    ctx.beginPath();
-    ctx.ellipse(
-      100 + i * 130 + Math.sin(tick * 0.05 + i) * 20,
-      80 + i * 90,
-      120, 30, 0, 0, Math.PI * 2
-    );
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
+  drawVenusSky(ctx, canvas.width, canvas.height, tick);
+  drawMistMotes(ctx, canvas.width, canvas.height, tick);
 
-  if (!state) return;
+  if (!state) {
+    drawViewportVignette(ctx, canvas.width, canvas.height);
+    return;
+  }
 
   const placeable = state.gameOver ? new Set() : getPlaceableHexes(state);
   const visible = new Set([...state.modules.keys(), ...placeable]);
 
   if (hoverHex) visible.add(hexKey(hoverHex.q, hoverHex.r));
+
+  const inBuildMode = !!state.selectedBuild;
 
   for (const key of visible) {
     const [q, r] = key.split(',').map(Number);
@@ -909,55 +902,30 @@ function draw() {
 
     if (mod) {
       const def = MODULE_TYPES[mod.type];
-      drawHex(ctx, cx, cy, HEX_DRAW_RADIUS, def.color + '55', def.color, isSelected ? 2 : 1);
-
-      if (mod.type === 'h2cell') {
-        for (let layer = 1; layer < mod.h2Layers; layer++) {
-          drawHex(ctx, cx, cy - layer * 4, HEX_DRAW_RADIUS - 4 - layer * 2, null, '#a371f788', 1);
-        }
-      }
-
-      if (mod.corrosion > 20) {
-        ctx.globalAlpha = mod.corrosion / 200;
-        drawHex(ctx, cx, cy, HEX_DRAW_RADIUS, '#f8514966', null);
-        ctx.globalAlpha = 1;
-      }
-
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 10px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const abbrev = { core: 'CORE', intake: 'INT', isru: 'ISRU', solar: 'SOL', h2cell: 'H₂' };
-      ctx.fillText(abbrev[mod.type] || mod.type, cx, cy);
+      drawOccupiedHex(ctx, cx, cy, mod, def, isSelected);
     } else if (isPlaceable) {
-      const inBuildMode = !!state.selectedBuild;
-      const fill = inBuildMode ? '#39d4d455' : (isHover ? '#39d4d433' : '#ffffff08');
-      const stroke = inBuildMode ? '#39d4d4' : (isHover ? '#39d4d4' : '#ffffff22');
-      const strokeWidth = inBuildMode ? 2 : 1;
-      drawHex(ctx, cx, cy, HEX_DRAW_RADIUS, fill, stroke, strokeWidth);
-      if (inBuildMode || isHover) {
-        ctx.fillStyle = inBuildMode ? '#39d4d4cc' : '#39d4d4';
-        ctx.font = inBuildMode ? 'bold 16px sans-serif' : '18px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('+', cx, cy);
-      }
+      drawEmptyHex(ctx, cx, cy, { inBuildMode, isHover });
     }
   }
 
   particles = particles.filter((p) => {
     p.x += p.vx;
     p.y += p.vy;
+    p.vy += 0.02;
     p.life--;
-    ctx.globalAlpha = p.life / 40;
+    ctx.globalAlpha = (p.life / 40) * 0.85;
     ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 4;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, 2 + (40 - p.life) * 0.02, 0, Math.PI * 2);
     ctx.fill();
+    ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
     return p.life > 0;
   });
 
+  drawViewportVignette(ctx, canvas.width, canvas.height);
   updateUI();
 }
 
