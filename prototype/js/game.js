@@ -34,13 +34,13 @@ export const H2_LIFT_BASE_DEMAND = 1.5;
 export const H2_LIFT_PER_MODULE = 0.4;
 export const H2_LIFT_PER_H2_LAYER = 1.0;
 export const H2_GAS_PER_LAYER = 1.5;
-/** Lift (t) gained per tonne of effective H₂ gas, scaled by utilization vs demand. */
+/** Lift (t) gained per tonne of effective H₂ gas (linear; demand is HUD-only). */
 export const H2_LIFT_PER_T = 5;
 
 /** §7.1 / §9 — corrosion-driven H₂ leakage (t / tick). */
-export const H2_LEAK_BASE = 0.02;
-export const H2_LEAK_AVG_CORROSION_SCALE = 0.10;
-export const H2_LEAK_MAX_CORROSION_SCALE = 0.05;
+export const H2_LEAK_BASE = 0.005;
+export const H2_LEAK_AVG_CORROSION_SCALE = 0.05;
+export const H2_LEAK_MAX_CORROSION_SCALE = 0.02;
 /** Coated modules contribute this fraction to leak-weighted corrosion. */
 export const H2_LEAK_COATING_FACTOR = 0.45;
 
@@ -65,9 +65,9 @@ export const ELECTROLYZER_O2_YIELD = 0.15;
 
 /** Starting inventory by difficulty (§8.2–8.4). */
 const STARTING_BY_DIFFICULTY = {
-  easy: { credits: 30, h2so4: 2, sulfur: 1, iron: 0, h2: 3 },
-  normal: { credits: 30, h2so4: 2, sulfur: 1, iron: 0, h2: 3 },
-  hard: { credits: 12, h2so4: 2, sulfur: 2, iron: 2, h2: 2 },
+  easy: { credits: 40, h2so4: 2, sulfur: 1, iron: 2, h2: 5, h2o: 4 },
+  normal: { credits: 30, h2so4: 2, sulfur: 1, iron: 1, h2: 4, h2o: 2.5 },
+  hard: { credits: 18, h2so4: 2, sulfur: 2, iron: 2, h2: 3.5, h2o: 2 },
 };
 
 export const MODULE_TYPES = {
@@ -150,7 +150,7 @@ export const MODULE_TYPES = {
 
 export const DIFFICULTY_LEVELS = ['easy', 'normal', 'hard'];
 
-export const EARTH_AID_INTERVAL = 120;
+export const EARTH_AID_INTERVAL = 60;
 
 /** H₂O / Fe granted per aid shipment by difficulty. */
 export const EARTH_AID_AMOUNTS = {
@@ -201,7 +201,7 @@ export const WIND_DAMAGE_THRESHOLD = 12;
 const WIND_EXTRA_CORROSION = 0.4;
 const WIND_POWER_PENALTY = 3;
 
-export const SINK_COUNTDOWN_MAX = 10;
+export const SINK_COUNTDOWN_MAX = 30;
 export const SINK_WARNING_AT = 5;
 
 /** §9 — corrosion severity bands (light stakes, no instant destruction). */
@@ -249,6 +249,7 @@ export function createInitialState(difficulty = 'normal') {
   inventory.credits = start.credits;
   inventory.iron = start.iron;
   inventory.h2 = start.h2 ?? 0;
+  inventory.h2o = start.h2o ?? 0;
 
   return {
     modules,
@@ -759,10 +760,9 @@ export function computeH2LeakRate(modules) {
     + (maxCorrosion / 100) * H2_LEAK_MAX_CORROSION_SCALE;
 }
 
-/** §7.1 — H₂ gas lift (dominant buoyancy term) and HUD snapshot. */
-export function computeH2GasLift(effectiveH2, demand) {
-  const utilization = demand > 0 ? Math.min(1, effectiveH2 / demand) : 1;
-  return effectiveH2 * H2_LIFT_PER_T * utilization;
+/** §7.1 — H₂ gas lift (dominant buoyancy term); linear in effective H₂ (demand unused). */
+export function computeH2GasLift(effectiveH2) {
+  return effectiveH2 * H2_LIFT_PER_T;
 }
 
 /** §7.1 — H₂ lift breakdown for HUD and net-lift integration. */

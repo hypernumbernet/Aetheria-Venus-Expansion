@@ -255,7 +255,7 @@ Implementers should read ゲームルール.md before changing `prototype/` beha
 
 ## 10. Implemented Prototype Rules (`prototype/`)
 
-This section summarizes what the live browser build does today (PR #28 / **ゲームルール.md v0.4.2**, `main`). Full tables and citations remain in ゲームルール.md.
+This section summarizes what the live browser build does today (**ゲームルール.md v0.4.3**). Full tables and citations remain in ゲームルール.md.
 
 ### 10.1 Session & Time
 
@@ -309,15 +309,15 @@ CORE life support consumes **0.7 O₂/tick** while CORE exists.
 ### 10.4 Buoyancy, H₂ Lift & Game Over
 
 - **Structural lift** = sum of modest per-module base buoyancy (+ carbon lightening − corrosion debuffs).
-- **H₂ gas lift** = effective H₂ × **5** × utilization, where effective H₂ = inventory H₂ + cell envelope (1.5 t/layer), demand = **1.5 + 0.4×modules + 1.0×H₂-cell layers**, utilization = min(1, effective/demand).
+- **H₂ gas lift** = effective H₂ × **5** (linear; no utilization multiplier). Demand = **1.5 + 0.4×modules + 1.0×H₂-cell layers** is shown on HUD for shortfall warnings only; utilization = min(1, effective/demand) is HUD-only.
 - **Net lift** = structural lift + **H₂ gas lift** − total mass. Structural lift alone cannot sustain the colony.
-- **H₂ leak** each tick from inventory (corrosion-driven; coating slows leak). HUD shows H₂ lift, gas stock, and leak rate.
-- If net lift **&lt; 0** for **10 consecutive ticks**, game over (sinking). Warning at tick 5 (H₂-specific copy when lift gas is the cause). Recovery resets countdown.
+- **H₂ leak** each tick from inventory: **0.005** + avg corrosion × **0.05/100** + max corrosion × **0.02/100** (coating reduces module contribution). HUD shows H₂ lift, gas stock, and leak rate.
+- If net lift **&lt; 0** for **30 consecutive ticks**, game over (sinking). Warning at tick 5 (H₂-specific copy when lift gas is the cause). Recovery resets countdown.
 - **Carbon lightening** on selected module: −1 C, −2 mass, +2 structural lift (max 3× per module).
 
 ### 10.5 Earth Partnership
 
-**Periodic aid** every **120 ticks** (difficulty only; no decay):
+**Periodic aid** every **60 ticks** (difficulty only; no decay):
 
 | Difficulty | H₂O | Fe |
 |------------|-----|-----|
@@ -327,7 +327,7 @@ CORE life support consumes **0.7 O₂/tick** while CORE exists.
 
 **Earth market** (all difficulties): buy Fe **6₵**, H₂O **5₵**; export **2 t S → 6₵**. HUD shows aid ETA and build/market shortcuts.
 
-**Starting stock**: Easy/Normal — 30₵, 2 H₂SO₄, 1 S, 0 Fe, **3 H₂**; Hard — 12₵, 2 H₂SO₄, 2 S, 2 Fe, **2 H₂**.
+**Starting stock**: Easy — **40₵**, 2 H₂SO₄, 1 S, **2 Fe**, **4 H₂O**, **5 H₂**; Normal — 30₵, 2 H₂SO₄, 1 S, **1 Fe**, **2.5 H₂O**, **4 H₂**; Hard — **18₵**, 2 H₂SO₄, 2 S, 2 Fe, **2 H₂O**, **3.5 H₂**.
 
 Tone: Earth is a **hopeful partner**; difficulty is aid volume, not abandonment.
 
