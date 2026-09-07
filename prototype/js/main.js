@@ -47,7 +47,11 @@ import {
   TRADE_SULFUR_COST,
   VENT_CARGO_BATCH,
   INVENTORY_CARGO_MASS_IDS,
+  INVENTORY_VENTABLE_IDS,
+  getH2LiftInfo,
   CORROSION_WARN_THRESHOLD,
+  CORE_POWER_GEN_BY_DIFFICULTY,
+  CORE_ELECTROLYSIS_BY_DIFFICULTY,
   SINK_COUNTDOWN_MAX,
   SINK_WARNING_AT,
 } from './game.js';
@@ -128,7 +132,9 @@ function startGame(difficulty = 'normal') {
   draw();
   if (!state.startHintShown) {
     state = { ...state, startHintShown: true };
-    showToast(getBuildPanelHint(state));
+    const cfg = CORE_ELECTROLYSIS_BY_DIFFICULTY[difficulty] ?? CORE_ELECTROLYSIS_BY_DIFFICULTY.normal;
+    const power = CORE_POWER_GEN_BY_DIFFICULTY[difficulty] ?? CORE_POWER_GEN_BY_DIFFICULTY.normal;
+    showToast(t('panel.coreBootstrap', { power, h2: cfg.h2.toFixed(2) }));
   }
   if (!tickInterval) {
     tickInterval = setInterval(runTick, 1000);
@@ -231,11 +237,16 @@ function updateSinkWarning() {
   }
   sinkWarning.hidden = false;
   const remaining = SINK_COUNTDOWN_MAX - cd;
+  const h2Critical = getH2LiftInfo(state).critical;
   if (cd >= SINK_WARNING_AT) {
-    sinkWarning.textContent = t('sink.warning', { remaining });
+    sinkWarning.textContent = h2Critical
+      ? t('sink.warningH2', { remaining })
+      : t('sink.warning', { remaining });
     sinkWarning.className = 'sink-warning danger';
   } else {
-    sinkWarning.textContent = t('sink.caution', { remaining });
+    sinkWarning.textContent = h2Critical
+      ? t('sink.cautionH2', { remaining })
+      : t('sink.caution', { remaining });
     sinkWarning.className = 'sink-warning';
   }
 }
@@ -319,12 +330,13 @@ function createInventoryRow(id, compact = false) {
     hint.className = 'inventory-hint';
     hint.textContent = t('inventory.creditsHint');
     actions.appendChild(hint);
-  } else if (INVENTORY_CARGO_MASS_IDS.includes(id) && amount > 0) {
+  } else if (INVENTORY_VENTABLE_IDS.includes(id) && amount > 0) {
     const ventBtn = document.createElement('button');
     ventBtn.type = 'button';
     ventBtn.className = 'vent-btn';
     ventBtn.textContent = t('inventory.ventCargo', { amount: VENT_CARGO_BATCH });
-    ventBtn.title = t('inventory.ventCargoHint');
+    const hasMass = INVENTORY_CARGO_MASS_IDS.includes(id);
+    ventBtn.title = hasMass ? t('inventory.ventCargoHint') : t('inventory.ventEmergencyHint');
     ventBtn.disabled = state.gameOver || amount < VENT_CARGO_BATCH;
     ventBtn.addEventListener('click', async () => {
       const confirmMsg = t('msg.confirmVent', {
@@ -473,6 +485,15 @@ function updateUI() {
   };
 
   set('stat-buoyancy', stats.buoyancy.toFixed(1));
+  const structuralLiftEl = document.getElementById('stat-structural-lift');
+  const h2GasLiftEl = document.getElementById('stat-h2-gas-lift');
+  if (structuralLiftEl) {
+    structuralLiftEl.textContent = stats.structuralBuoyancy.toFixed(1);
+  }
+  if (h2GasLiftEl) {
+    h2GasLiftEl.textContent = '+' + stats.h2GasLift.toFixed(1);
+    h2GasLiftEl.className = stats.h2Critical ? 'warning' : 'positive';
+  }
   set('stat-mass', stats.mass.toFixed(1));
   set('stat-net', (stats.netLift >= 0 ? '+' : '') + stats.netLift.toFixed(1),
     stats.netLift >= 0 ? 'positive' : 'negative');
@@ -617,6 +638,18 @@ function updateUI() {
   setResource('res-n2', state.inventory.n2.toFixed(1));
   setResource('res-h2so4', formatH2so4Amount(state.inventory.h2so4));
   setResource('res-h2', state.inventory.h2.toFixed(1));
+  const h2LiftEl = document.getElementById('res-h2-lift');
+  if (h2LiftEl) {
+    const h2Lift = getH2LiftInfo(state);
+    h2LiftEl.textContent = t('panel.h2LiftStatus', {
+      lift: h2Lift.h2GasLift.toFixed(1),
+      effective: h2Lift.effective.toFixed(1),
+      demand: h2Lift.demand.toFixed(1),
+      leak: h2Lift.leakRate.toFixed(3),
+    });
+    h2LiftEl.hidden = false;
+    h2LiftEl.className = h2Lift.critical ? 'resource-flow warning' : 'resource-flow';
+  }
   setResource('res-o2', state.inventory.o2.toFixed(1));
   const o2FlowEl = document.getElementById('res-o2-flow');
   if (o2FlowEl) {
@@ -832,7 +865,7 @@ function buildButtons() {
   if (!state) return;
   const container = document.getElementById('build-buttons');
   container.innerHTML = '';
-  for (const type of ['intake', 'isru', 'solar', 'h2cell']) {
+  for (const type of ['intake', 'isru', 'solar', 'h2cell', 'electrolyzer']) {
     const def = MODULE_TYPES[type];
     const preview = getBuildPowerPreview(state, type);
     const affordable = canAfford(state.inventory, def.cost);

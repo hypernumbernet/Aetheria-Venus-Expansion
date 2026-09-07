@@ -255,7 +255,7 @@ Implementers should read ゲームルール.md before changing `prototype/` beha
 
 ## 10. Implemented Prototype Rules (`prototype/`)
 
-This section summarizes what the live browser build does today (post–PR #25, `main`). Full tables and citations remain in ゲームルール.md.
+This section summarizes what the live browser build does today (PR #28 / **ゲームルール.md v0.4.2**, `main`). Full tables and citations remain in ゲームルール.md.
 
 ### 10.1 Session & Time
 
@@ -266,17 +266,22 @@ This section summarizes what the live browser build does today (post–PR #25, `
 ### 10.2 Map & Modules
 
 - Axial **flat-top hex** grid; build only on hexes **adjacent** to the floating continent.
-- **CORE** at start: continuous intake, cannot be dismantled.
+- **CORE** at start: continuous intake, **built-in difficulty-scaled solar + water electrolysis**, cannot be dismantled.
 - Buildable modules (all require **iron** in cost):
 
-| Module | Mass | Lift | Power (gen/use) | Build cost |
-|--------|------|------|-----------------|------------|
-| Atmospheric Intake | 8 | 6 | 0 / 2 | Fe 2, C 1, S 1 |
-| ISRU Refinery | 10 | 8 | 0 / 8 | Fe 2, S 1 |
-| Solar Array | 6 | 5 | 15 / 0 | Fe 2 |
-| H₂ Buoyancy Cell | 8 | 14 | 0 / 1 | Fe 1, H₂ 1, C 1 |
+| Module | Mass | Structural lift | Power (gen/use) | Build cost |
+|--------|------|-----------------|-----------------|------------|
+| Atmospheric Intake | 8 | 2 | 0 / 2 | Fe 2, C 1, S 1 |
+| ISRU Refinery | 10 | 2 | 0 / 8 | Fe 2, S 1 |
+| Solar Array | 6 | 2 | 15 / 0 | Fe 2 |
+| H₂ Buoyancy Cell | 8 | 3 | 0 / 1 | Fe 1, H₂ 1, C 1 |
+| Water Electrolyzer | 7 | 2 | 0 / 5 | Fe 2, S 1 |
 
-- **H₂ cell extend**: −3 H₂, +8 lift, +4 wind load per layer (max 4 layers). **Lower** reverses layers without H₂ refund.
+- **Design**: each hex contributes **small structural lift** only; **H₂ gas** (inventory + cell envelope) provides the **large dominant lift term**.
+
+- **CORE bootstrap** (not separate modules): solar gen **+6 / +5 / +4** (Easy / Normal / Hard); built-in electrolysis **+0.10 / +0.06 / +0.04 H₂/tick** from **0.25 H₂O** when **pre-electrolysis power net ≥ 1** (+1 power while active; Hard ends at net **0**, ISRU still runs).
+
+- **H₂ cell extend**: −3 H₂ (adds envelope gas / lift), +4 wind load per layer (max 4 layers). **Lower** reverses layers without H₂ refund. No separate structural lift bonus per layer.
 - **Dismantle**: 25% iron refund (min 1 t if iron was in cost); cannot break continent connectivity.
 
 ### 10.3 Resources & ISRU
@@ -293,15 +298,22 @@ This section summarizes what the live browser build does today (post–PR #25, `
 
 CORE life support consumes **0.7 O₂/tick** while CORE exists.
 
-**Cargo mass**: stored Fe, H₂O, S, H₂, O₂, H₂SO₄ add **0.05 t structure mass per 1 t** held; vent 1 t batches from Inventory.
+**Water electrolysis** (module): per unit per tick when power net ≥ 0 and H₂O ≥ 0.4 t → **+0.20 H₂**, **+0.15 O₂**, −0.4 H₂O.
+
+**Cargo mass**: stored Fe, H₂O, S, H₂, O₂, H₂SO₄ add **0.05 t structure mass per 1 t** held.
+
+**Emergency vent**: any inventory resource **except credits** in **1 t** batches from Inventory (mass-bearing cargo reduces mass; gases are jettison-only).
 
 **Not implemented as playable loops**: CO harvest, Sabatier, N-fixation, surface mining.
 
-### 10.4 Buoyancy & Game Over
+### 10.4 Buoyancy, H₂ Lift & Game Over
 
-- **Net lift** = total buoyancy − total mass (modules + cargo + corrosion/wind penalties).
-- If net lift **&lt; 0** for **10 consecutive ticks**, game over (sinking). Warning at tick 5. Recovery resets countdown.
-- **Carbon lightening** on selected module: −1 C, −2 mass, +2 lift (max 3× per module).
+- **Structural lift** = sum of modest per-module base buoyancy (+ carbon lightening − corrosion debuffs).
+- **H₂ gas lift** = effective H₂ × **5** × utilization, where effective H₂ = inventory H₂ + cell envelope (1.5 t/layer), demand = **1.5 + 0.4×modules + 1.0×H₂-cell layers**, utilization = min(1, effective/demand).
+- **Net lift** = structural lift + **H₂ gas lift** − total mass. Structural lift alone cannot sustain the colony.
+- **H₂ leak** each tick from inventory (corrosion-driven; coating slows leak). HUD shows H₂ lift, gas stock, and leak rate.
+- If net lift **&lt; 0** for **10 consecutive ticks**, game over (sinking). Warning at tick 5 (H₂-specific copy when lift gas is the cause). Recovery resets countdown.
+- **Carbon lightening** on selected module: −1 C, −2 mass, +2 structural lift (max 3× per module).
 
 ### 10.5 Earth Partnership
 
@@ -315,7 +327,7 @@ CORE life support consumes **0.7 O₂/tick** while CORE exists.
 
 **Earth market** (all difficulties): buy Fe **6₵**, H₂O **5₵**; export **2 t S → 6₵**. HUD shows aid ETA and build/market shortcuts.
 
-**Starting stock**: Easy/Normal — 30₵, 2 H₂SO₄, 1 S, 0 Fe; Hard — 12₵, 2 H₂SO₄, 2 S, 2 Fe.
+**Starting stock**: Easy/Normal — 30₵, 2 H₂SO₄, 1 S, 0 Fe, **3 H₂**; Hard — 12₵, 2 H₂SO₄, 2 S, 2 Fe, **2 H₂**.
 
 Tone: Earth is a **hopeful partner**; difficulty is aid volume, not abandonment.
 
@@ -325,6 +337,7 @@ Tone: Earth is a **hopeful partner**; difficulty is aid volume, not abandonment.
 - **Sulfur coating**: −1 S, −25% corrosion, 20-tick slow rise (preventive/repair).
 - **S upkeep**: 0.05 S/tick when maintenance active.
 - **Wind load** from H₂ cells; above **12** → −3 power net and extra corrosion; **shear warning** if load &gt;15 and net lift &lt;10.
+- **H₂ leak** scales with corrosion (avg + max); sulfur coating reduces a module’s leak contribution.
 - Penalty bands at 50% / 75% / 90% corrosion (power, mass, lift debuffs). No instant module destruction.
 
 ### 10.7 Vision vs Implemented (intentional split)
@@ -338,4 +351,4 @@ Tone: Earth is a **hopeful partner**; difficulty is aid volume, not abandonment.
 | Trade | Reputation-scaled shipments | Fixed aid + sulfur export market |
 | Win state | Legacy score, ceremonies | Survival / expansion sandbox only |
 
-The prototype validates **inventory tension**, **ISRU bottlenecks (H₂SO₄ → H₂ → Bosch)**, **power budgeting**, **buoyancy vs wind/corrosion**, and **Earth aid vs market**—not the full campaign arc described in §§3–8.
+The prototype validates **inventory tension**, **ISRU bottlenecks (H₂SO₄ → H₂ → Bosch)**, **H₂ lift / leak vs corrosion**, **water electrolysis**, **power budgeting**, **buoyancy vs wind/corrosion**, and **Earth aid vs market**—not the full campaign arc described in §§3–8.

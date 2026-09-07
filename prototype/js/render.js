@@ -347,6 +347,27 @@ export function drawModuleIcon(ctx, cx, cy, type, color) {
       ctx.stroke();
       break;
     }
+    case 'electrolyzer': {
+      ctx.strokeRect(-s * 0.55, -s * 0.35, s * 1.1, s * 0.7);
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.35, s * 0.35);
+      ctx.lineTo(-s * 0.35, s * 0.55);
+      ctx.moveTo(s * 0.35, s * 0.35);
+      ctx.lineTo(s * 0.35, s * 0.55);
+      ctx.stroke();
+      for (let i = 0; i < 3; i++) {
+        const y = -s * 0.2 + i * s * 0.2;
+        ctx.beginPath();
+        ctx.moveTo(-s * 0.45, y);
+        ctx.lineTo(s * 0.45, y);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(-s * 0.15, -s * 0.55, s * 0.12, 0, Math.PI * 2);
+      ctx.arc(s * 0.15, -s * 0.55, s * 0.12, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
     default:
       ctx.font = 'bold 9px sans-serif';
       ctx.fillStyle = ink;
