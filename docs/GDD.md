@@ -255,7 +255,7 @@ Implementers should read ゲームルール.md before changing `prototype/` beha
 
 ## 10. Implemented Prototype Rules (`prototype/`)
 
-This section summarizes what the live browser build does today (post–PR #27 / rules v0.4, `main`). Full tables and citations remain in ゲームルール.md.
+This section summarizes what the live browser build does today (PR #28 / **ゲームルール.md v0.4.2**, `main`). Full tables and citations remain in ゲームルール.md.
 
 ### 10.1 Session & Time
 
