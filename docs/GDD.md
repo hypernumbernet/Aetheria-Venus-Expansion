@@ -279,7 +279,7 @@ This section summarizes what the live browser build does today (post–PR #27 / 
 
 - **Design**: each hex contributes **small structural lift** only; **H₂ gas** (inventory + cell envelope) provides the **large dominant lift term**.
 
-- **CORE bootstrap** (not separate modules): solar gen **+6 / +5 / +4** (Easy / Normal / Hard); built-in electrolysis **+0.10 / +0.06 / +0.04 H₂/tick** from **0.25 H₂O** when power allows (+1 power while active).
+- **CORE bootstrap** (not separate modules): solar gen **+6 / +5 / +4** (Easy / Normal / Hard); built-in electrolysis **+0.10 / +0.06 / +0.04 H₂/tick** from **0.25 H₂O** when **pre-electrolysis power net ≥ 1** (+1 power while active; Hard ends at net **0**, ISRU still runs).
 
 - **H₂ cell extend**: −3 H₂ (adds envelope gas / lift), +4 wind load per layer (max 4 layers). **Lower** reverses layers without H₂ refund. No separate structural lift bonus per layer.
 - **Dismantle**: 25% iron refund (min 1 t if iron was in cost); cannot break continent connectivity.

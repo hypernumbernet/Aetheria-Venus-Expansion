@@ -804,12 +804,20 @@ function hasCoreModuleFromMap(modules) {
   return false;
 }
 
-/** §4.2 — CORE built-in water electrolysis when surplus power and H₂O allow. */
-export function processCoreElectrolysis(inventory, modules, difficulty, powerNetBefore) {
-  if (!hasCoreModuleFromMap(modules)) return { inventory, events: [], ran: false };
+/** §4.2 — whether CORE built-in electrolysis can run this tick (shared gate for stats + tick). */
+export function canRunCoreElectrolysis(modules, inventory, difficulty, netBeforeCoreElectrolysis) {
+  if (!hasCoreModuleFromMap(modules)) return false;
   const cfg = getCoreElectrolysisConfig(difficulty);
-  if (powerNetBefore < cfg.power) return { inventory, events: [] };
-  if ((inventory.h2o ?? 0) < cfg.h2o) return { inventory, events: [] };
+  if ((inventory.h2o ?? 0) < cfg.h2o) return false;
+  return netBeforeCoreElectrolysis >= cfg.power;
+}
+
+/** §4.2 — CORE built-in water electrolysis when CORE solar covers the extra draw. */
+export function processCoreElectrolysis(inventory, modules, difficulty, netBeforeCoreElectrolysis) {
+  if (!canRunCoreElectrolysis(modules, inventory, difficulty, netBeforeCoreElectrolysis)) {
+    return { inventory, events: [], ran: false };
+  }
+  const cfg = getCoreElectrolysisConfig(difficulty);
 
   const next = { ...inventory };
   next.h2o = next.h2o - cfg.h2o;
@@ -919,10 +927,6 @@ export function computeStats(state) {
     const coreGen = CORE_POWER_GEN_BY_DIFFICULTY[state.difficulty]
       ?? CORE_POWER_GEN_BY_DIFFICULTY.normal;
     powerGen += coreGen;
-    const coreCfg = getCoreElectrolysisConfig(state.difficulty);
-    if ((state.inventory.h2o ?? 0) >= coreCfg.h2o) {
-      powerUse += coreCfg.power;
-    }
   }
 
   const inventoryMass = computeInventoryMass(state.inventory);
@@ -931,6 +935,18 @@ export function computeStats(state) {
   const buoyancy = structuralBuoyancy + h2Lift.h2GasLift;
   const netLift = buoyancy - mass;
   const windPowerPenalty = windLoad > WIND_DAMAGE_THRESHOLD ? WIND_POWER_PENALTY : 0;
+  const netBeforeCoreElectrolysis = powerGen - powerUse - windPowerPenalty;
+  let coreElectrolysisActive = false;
+  if (canRunCoreElectrolysis(
+    state.modules,
+    state.inventory,
+    state.difficulty,
+    netBeforeCoreElectrolysis,
+  )) {
+    const coreCfg = getCoreElectrolysisConfig(state.difficulty);
+    powerUse += coreCfg.power;
+    coreElectrolysisActive = true;
+  }
   const powerNet = powerGen - powerUse - windPowerPenalty;
 
   return {
@@ -944,6 +960,8 @@ export function computeStats(state) {
     powerGen,
     powerUse,
     powerNet,
+    netBeforeCoreElectrolysis,
+    coreElectrolysisActive,
     windPowerPenalty,
     corrosionPowerPenalty,
     intakeUnits,
@@ -1090,7 +1108,7 @@ export function getBuildPanelHint(state) {
     if (electrolyzerCount === 0 && canAfford(inv, elecCost)) {
       return t('panel.buildHintElectrolyzer');
     }
-    if ((inv.h2o ?? 0) >= 0.25 && stats.powerNet >= 1) {
+    if ((inv.h2o ?? 0) >= 0.25 && (stats.coreElectrolysisActive || stats.netBeforeCoreElectrolysis >= 1)) {
       return t('panel.h2LiftCoreElectro');
     }
     if (stats.netLift < 0 && (inv.h2 ?? 0) > VENT_CARGO_BATCH) {
@@ -1400,7 +1418,7 @@ export function gameTick(state) {
     inventory,
     modules,
     state.difficulty,
-    stats.powerNet,
+    stats.netBeforeCoreElectrolysis,
   );
   inventory = coreElectro.inventory;
   const moduleElectro = processModuleElectrolysis(
