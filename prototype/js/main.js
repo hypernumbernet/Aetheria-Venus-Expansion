@@ -485,6 +485,15 @@ function updateUI() {
   };
 
   set('stat-buoyancy', stats.buoyancy.toFixed(1));
+  const structuralLiftEl = document.getElementById('stat-structural-lift');
+  const h2GasLiftEl = document.getElementById('stat-h2-gas-lift');
+  if (structuralLiftEl) {
+    structuralLiftEl.textContent = stats.structuralBuoyancy.toFixed(1);
+  }
+  if (h2GasLiftEl) {
+    h2GasLiftEl.textContent = '+' + stats.h2GasLift.toFixed(1);
+    h2GasLiftEl.className = stats.h2Critical ? 'warning' : 'positive';
+  }
   set('stat-mass', stats.mass.toFixed(1));
   set('stat-net', (stats.netLift >= 0 ? '+' : '') + stats.netLift.toFixed(1),
     stats.netLift >= 0 ? 'positive' : 'negative');
@@ -632,17 +641,14 @@ function updateUI() {
   const h2LiftEl = document.getElementById('res-h2-lift');
   if (h2LiftEl) {
     const h2Lift = getH2LiftInfo(state);
-    if (h2Lift.leakRate > 0.001 || h2Lift.shortfall > 0.01) {
-      h2LiftEl.textContent = t('panel.h2LiftStatus', {
-        effective: h2Lift.effective.toFixed(1),
-        demand: h2Lift.demand.toFixed(1),
-        leak: h2Lift.leakRate.toFixed(3),
-      });
-      h2LiftEl.hidden = false;
-      h2LiftEl.className = h2Lift.critical ? 'resource-flow warning' : 'resource-flow';
-    } else {
-      h2LiftEl.hidden = true;
-    }
+    h2LiftEl.textContent = t('panel.h2LiftStatus', {
+      lift: h2Lift.h2GasLift.toFixed(1),
+      effective: h2Lift.effective.toFixed(1),
+      demand: h2Lift.demand.toFixed(1),
+      leak: h2Lift.leakRate.toFixed(3),
+    });
+    h2LiftEl.hidden = false;
+    h2LiftEl.className = h2Lift.critical ? 'resource-flow warning' : 'resource-flow';
   }
   setResource('res-o2', state.inventory.o2.toFixed(1));
   const o2FlowEl = document.getElementById('res-o2-flow');

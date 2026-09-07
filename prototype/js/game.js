@@ -29,12 +29,13 @@ const ACID_SPLIT_S_YIELD = 0.5;
 /** H₂ reserve kept for buoyancy cell before Bosch spends surplus (§4.2). */
 const H2_BOSCH_RESERVE = 1;
 
-/** §7.1 — H₂ gas demand / storage for sustained lift. */
-export const H2_LIFT_BASE_DEMAND = 2;
-export const H2_LIFT_PER_MODULE = 0.25;
-export const H2_LIFT_PER_H2_LAYER = 1.2;
+/** §7.1 — H₂ gas demand / storage; H₂ provides dominant lift (t lift per t gas). */
+export const H2_LIFT_BASE_DEMAND = 1.5;
+export const H2_LIFT_PER_MODULE = 0.4;
+export const H2_LIFT_PER_H2_LAYER = 1.0;
 export const H2_GAS_PER_LAYER = 1.5;
-export const H2_LIFT_PENALTY_PER_T = 3.5;
+/** Lift (t) gained per tonne of effective H₂ gas, scaled by utilization vs demand. */
+export const H2_LIFT_PER_T = 5;
 
 /** §7.1 / §9 — corrosion-driven H₂ leakage (t / tick). */
 export const H2_LEAK_BASE = 0.02;
@@ -75,7 +76,7 @@ export const MODULE_TYPES = {
     name: 'Core Habitat',
     color: '#f0883e',
     mass: 12,
-    baseBuoyancy: 18,
+    baseBuoyancy: 4,
     powerGen: 0,
     powerUse: 3,
     intake: 1,
@@ -87,7 +88,7 @@ export const MODULE_TYPES = {
     name: 'Atmospheric Intake',
     color: '#58a6ff',
     mass: 8,
-    baseBuoyancy: 6,
+    baseBuoyancy: 2,
     powerGen: 0,
     powerUse: 2,
     intake: 1,
@@ -99,7 +100,7 @@ export const MODULE_TYPES = {
     name: 'ISRU Refinery',
     color: '#39d4d4',
     mass: 10,
-    baseBuoyancy: 8,
+    baseBuoyancy: 2,
     powerGen: 0,
     powerUse: 8,
     intake: 0,
@@ -111,7 +112,7 @@ export const MODULE_TYPES = {
     name: 'Solar Array',
     color: '#d29922',
     mass: 6,
-    baseBuoyancy: 5,
+    baseBuoyancy: 2,
     powerGen: 15,
     powerUse: 0,
     intake: 0,
@@ -123,7 +124,7 @@ export const MODULE_TYPES = {
     name: 'H₂ Buoyancy Cell',
     color: '#a371f7',
     mass: 8,
-    baseBuoyancy: 14,
+    baseBuoyancy: 3,
     baseWindLoad: 4,
     powerGen: 0,
     powerUse: 1,
@@ -136,7 +137,7 @@ export const MODULE_TYPES = {
     name: 'Water Electrolyzer',
     color: '#56d4a0',
     mass: 7,
-    baseBuoyancy: 6,
+    baseBuoyancy: 2,
     powerGen: 0,
     powerUse: 5,
     intake: 0,
@@ -758,20 +759,28 @@ export function computeH2LeakRate(modules) {
     + (maxCorrosion / 100) * H2_LEAK_MAX_CORROSION_SCALE;
 }
 
-/** §7.1 — lift shortfall penalty and HUD snapshot. */
+/** §7.1 — H₂ gas lift (dominant buoyancy term) and HUD snapshot. */
+export function computeH2GasLift(effectiveH2, demand) {
+  const utilization = demand > 0 ? Math.min(1, effectiveH2 / demand) : 1;
+  return effectiveH2 * H2_LIFT_PER_T * utilization;
+}
+
+/** §7.1 — H₂ lift breakdown for HUD and net-lift integration. */
 export function getH2LiftInfo(state) {
   const demand = getH2LiftDemand(state.modules);
   const effective = getEffectiveH2(state.inventory, state.modules);
   const shortfall = Math.max(0, demand - effective);
-  const penalty = shortfall * H2_LIFT_PENALTY_PER_T;
+  const utilization = demand > 0 ? Math.min(1, effective / demand) : 1;
+  const h2GasLift = computeH2GasLift(effective, demand);
   const leakRate = computeH2LeakRate(state.modules);
   return {
     demand,
     effective,
     shortfall,
-    penalty,
+    utilization,
+    h2GasLift,
     leakRate,
-    critical: shortfall > 0.5,
+    critical: shortfall > 0.5 || utilization < 0.85,
   };
 }
 
@@ -873,7 +882,7 @@ export function getBuildPowerPreview(state, moduleType) {
 
 export function computeStats(state) {
   let moduleMass = 0;
-  let buoyancy = 0;
+  let structuralBuoyancy = 0;
   let powerGen = 0;
   let powerUse = 0;
   let intakeUnits = 0;
@@ -889,8 +898,7 @@ export function computeStats(state) {
     const lighten = mod.carbonLighten ?? 0;
     const cPen = getCorrosionPenalties(mod.corrosion ?? 0);
     moduleMass += def.mass - lighten * C_LIGHTEN_MASS_REDUCE + cPen.massPenalty;
-    const h2LayerBonus = mod.type === 'h2cell' ? (mod.h2Layers - 1) * H2_EXTEND_BUOYANCY : 0;
-    buoyancy += def.baseBuoyancy + h2LayerBonus + lighten * C_LIGHTEN_BUOYANCY - cPen.buoyancyPenalty;
+    structuralBuoyancy += def.baseBuoyancy + lighten * C_LIGHTEN_BUOYANCY - cPen.buoyancyPenalty;
     powerGen += def.powerGen;
     powerUse += def.powerUse + cPen.powerPenalty;
     corrosionPowerPenalty += cPen.powerPenalty;
@@ -920,7 +928,8 @@ export function computeStats(state) {
   const inventoryMass = computeInventoryMass(state.inventory);
   const mass = moduleMass + inventoryMass;
   const h2Lift = getH2LiftInfo(state);
-  const netLift = buoyancy - mass - h2Lift.penalty;
+  const buoyancy = structuralBuoyancy + h2Lift.h2GasLift;
+  const netLift = buoyancy - mass;
   const windPowerPenalty = windLoad > WIND_DAMAGE_THRESHOLD ? WIND_POWER_PENALTY : 0;
   const powerNet = powerGen - powerUse - windPowerPenalty;
 
@@ -928,6 +937,8 @@ export function computeStats(state) {
     mass,
     moduleMass,
     inventoryMass,
+    structuralBuoyancy,
+    h2GasLift: h2Lift.h2GasLift,
     buoyancy,
     netLift,
     powerGen,
@@ -943,7 +954,7 @@ export function computeStats(state) {
     h2Demand: h2Lift.demand,
     h2Effective: h2Lift.effective,
     h2Shortfall: h2Lift.shortfall,
-    h2LiftPenalty: h2Lift.penalty,
+    h2Utilization: h2Lift.utilization,
     h2LeakRate: h2Lift.leakRate,
     h2Critical: h2Lift.critical,
   };
