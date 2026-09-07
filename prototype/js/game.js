@@ -719,60 +719,42 @@ export function computeInventoryMass(inventory) {
   return total;
 }
 
-/** §7.1 — H₂ gas stored in inventory plus H₂ cell envelopes. */
-export function getEffectiveH2(inventory, modules) {
-  let total = inventory.h2 ?? 0;
-  for (const mod of modules.values()) {
-    if (mod.type === 'h2cell') {
-      total += (mod.h2Layers ?? 1) * H2_GAS_PER_LAYER;
-    }
-  }
-  return total;
-}
-
-/** §7.1 — minimum H₂ gas needed to sustain lift for the current continent layout. */
-export function getH2LiftDemand(modules) {
+/** Single-pass H₂ demand, effective storage, and leak-rate scan (§7.1 / §9). */
+function scanH2LiftMetrics(inventory, modules) {
   let demand = H2_LIFT_BASE_DEMAND;
-  for (const mod of modules.values()) {
-    if (mod.type === 'h2cell') {
-      demand += (mod.h2Layers ?? 1) * H2_LIFT_PER_H2_LAYER;
-    } else {
-      demand += H2_LIFT_PER_MODULE;
-    }
+  let effective = inventory.h2 ?? 0;
+  const size = modules.size;
+  if (size === 0) {
+    return { demand, effective, leakRate: 0 };
   }
-  return demand;
-}
 
-/** §7.1 / §9 — corrosion-weighted H₂ leak rate (t / tick). */
-export function computeH2LeakRate(modules) {
-  if (modules.size === 0) return 0;
   let weightedCorrosion = 0;
   let maxCorrosion = 0;
   for (const mod of modules.values()) {
     const c = mod.corrosion ?? 0;
-    maxCorrosion = Math.max(maxCorrosion, c);
+    if (c > maxCorrosion) maxCorrosion = c;
     const coated = (mod.coatedTicks ?? 0) > 0;
     weightedCorrosion += c * (coated ? H2_LEAK_COATING_FACTOR : 1);
+    if (mod.type === 'h2cell') {
+      const layers = mod.h2Layers ?? 1;
+      effective += layers * H2_GAS_PER_LAYER;
+      demand += layers * H2_LIFT_PER_H2_LAYER;
+    } else {
+      demand += H2_LIFT_PER_MODULE;
+    }
   }
-  const avgCorrosion = weightedCorrosion / modules.size;
-  return H2_LEAK_BASE
+
+  const avgCorrosion = weightedCorrosion / size;
+  const leakRate = H2_LEAK_BASE
     + (avgCorrosion / 100) * H2_LEAK_AVG_CORROSION_SCALE
     + (maxCorrosion / 100) * H2_LEAK_MAX_CORROSION_SCALE;
+  return { demand, effective, leakRate };
 }
 
-/** §7.1 — H₂ gas lift (dominant buoyancy term); linear in effective H₂ (demand unused). */
-export function computeH2GasLift(effectiveH2) {
-  return effectiveH2 * H2_LIFT_PER_T;
-}
-
-/** §7.1 — H₂ lift breakdown for HUD and net-lift integration. */
-export function getH2LiftInfo(state) {
-  const demand = getH2LiftDemand(state.modules);
-  const effective = getEffectiveH2(state.inventory, state.modules);
+function finalizeH2LiftInfo({ demand, effective, leakRate }) {
   const shortfall = Math.max(0, demand - effective);
   const utilization = demand > 0 ? Math.min(1, effective / demand) : 1;
-  const h2GasLift = computeH2GasLift(effective, demand);
-  const leakRate = computeH2LeakRate(state.modules);
+  const h2GasLift = effective * H2_LIFT_PER_T;
   return {
     demand,
     effective,
@@ -784,20 +766,37 @@ export function getH2LiftInfo(state) {
   };
 }
 
+/** §7.1 — H₂ gas stored in inventory plus H₂ cell envelopes. */
+export function getEffectiveH2(inventory, modules) {
+  return scanH2LiftMetrics(inventory, modules).effective;
+}
+
+/** §7.1 — minimum H₂ gas needed to sustain lift for the current continent layout. */
+export function getH2LiftDemand(modules) {
+  return scanH2LiftMetrics({ h2: 0 }, modules).demand;
+}
+
+/** §7.1 / §9 — corrosion-weighted H₂ leak rate (t / tick). */
+export function computeH2LeakRate(modules) {
+  return scanH2LiftMetrics({ h2: 0 }, modules).leakRate;
+}
+
+/** §7.1 — H₂ gas lift (dominant buoyancy term); linear in effective H₂. */
+export function computeH2GasLift(effectiveH2) {
+  return effectiveH2 * H2_LIFT_PER_T;
+}
+
+/** §7.1 — H₂ lift breakdown for HUD and net-lift integration. */
+export function getH2LiftInfo(state) {
+  return finalizeH2LiftInfo(scanH2LiftMetrics(state.inventory, state.modules));
+}
+
 function getCoreElectrolysisConfig(difficulty) {
   return CORE_ELECTROLYSIS_BY_DIFFICULTY[difficulty]
     ?? CORE_ELECTROLYSIS_BY_DIFFICULTY.normal;
 }
 
-function countModulesOfTypeLocal(modules, type) {
-  let count = 0;
-  for (const mod of modules.values()) {
-    if (mod.type === type) count++;
-  }
-  return count;
-}
-
-function hasCoreModuleFromMap(modules) {
+function hasCoreModule(modules) {
   for (const mod of modules.values()) {
     if (mod.type === 'core') return true;
   }
@@ -806,7 +805,7 @@ function hasCoreModuleFromMap(modules) {
 
 /** §4.2 — whether CORE built-in electrolysis can run this tick (shared gate for stats + tick). */
 export function canRunCoreElectrolysis(modules, inventory, difficulty, netBeforeCoreElectrolysis) {
-  if (!hasCoreModuleFromMap(modules)) return false;
+  if (!hasCoreModule(modules)) return false;
   const cfg = getCoreElectrolysisConfig(difficulty);
   if ((inventory.h2o ?? 0) < cfg.h2o) return false;
   return netBeforeCoreElectrolysis >= cfg.power;
@@ -859,11 +858,11 @@ export function applyH2Leak(inventory, leakRate) {
 }
 
 /** Post-placement power preview for build UI (§4.2 / §6.3). */
-export function getBuildPowerPreview(state, moduleType) {
+export function getBuildPowerPreview(state, moduleType, cachedStats = null) {
   const def = MODULE_TYPES[moduleType];
   if (!def) return null;
 
-  const stats = computeStats(state);
+  const stats = cachedStats ?? computeStats(state);
   const genDelta = def.powerGen ?? 0;
   const useDelta = def.powerUse ?? 0;
 
@@ -900,11 +899,17 @@ export function computeStats(state) {
   let isruCount = 0;
   let electrolyzerCount = 0;
   let hasCore = false;
+  let h2Demand = H2_LIFT_BASE_DEMAND;
+  let h2Effective = state.inventory.h2 ?? 0;
+  let h2WeightedCorrosion = 0;
+  let h2MaxCorrosion = 0;
+  const moduleCount = state.modules.size;
 
   for (const mod of state.modules.values()) {
     const def = MODULE_TYPES[mod.type];
     const lighten = mod.carbonLighten ?? 0;
-    const cPen = getCorrosionPenalties(mod.corrosion ?? 0);
+    const corrosionVal = mod.corrosion ?? 0;
+    const cPen = getCorrosionPenalties(corrosionVal);
     moduleMass += def.mass - lighten * C_LIGHTEN_MASS_REDUCE + cPen.massPenalty;
     structuralBuoyancy += def.baseBuoyancy + lighten * C_LIGHTEN_BUOYANCY - cPen.buoyancyPenalty;
     powerGen += def.powerGen;
@@ -915,9 +920,17 @@ export function computeStats(state) {
       windLoad += def.baseWindLoad;
     }
     if (mod.type === 'h2cell') {
+      const layers = mod.h2Layers ?? 1;
+      h2Effective += layers * H2_GAS_PER_LAYER;
+      h2Demand += layers * H2_LIFT_PER_H2_LAYER;
       windLoad += (mod.h2Layers - 1) * H2_EXTEND_WIND;
+    } else {
+      h2Demand += H2_LIFT_PER_MODULE;
     }
-    corrosion += mod.corrosion;
+    if (corrosionVal > h2MaxCorrosion) h2MaxCorrosion = corrosionVal;
+    const coated = (mod.coatedTicks ?? 0) > 0;
+    h2WeightedCorrosion += corrosionVal * (coated ? H2_LEAK_COATING_FACTOR : 1);
+    corrosion += corrosionVal;
     if (mod.type === 'isru') isruCount++;
     if (mod.type === 'electrolyzer') electrolyzerCount++;
     if (mod.type === 'core') hasCore = true;
@@ -931,8 +944,16 @@ export function computeStats(state) {
 
   const inventoryMass = computeInventoryMass(state.inventory);
   const mass = moduleMass + inventoryMass;
-  const h2Lift = getH2LiftInfo(state);
-  const buoyancy = structuralBuoyancy + h2Lift.h2GasLift;
+  const h2LeakRate = moduleCount === 0
+    ? 0
+    : H2_LEAK_BASE
+      + ((h2WeightedCorrosion / moduleCount) / 100) * H2_LEAK_AVG_CORROSION_SCALE
+      + (h2MaxCorrosion / 100) * H2_LEAK_MAX_CORROSION_SCALE;
+  const h2Shortfall = Math.max(0, h2Demand - h2Effective);
+  const h2Utilization = h2Demand > 0 ? Math.min(1, h2Effective / h2Demand) : 1;
+  const h2GasLift = h2Effective * H2_LIFT_PER_T;
+  const h2Critical = h2Shortfall > 0.5 || h2Utilization < 0.85;
+  const buoyancy = structuralBuoyancy + h2GasLift;
   const netLift = buoyancy - mass;
   const windPowerPenalty = windLoad > WIND_DAMAGE_THRESHOLD ? WIND_POWER_PENALTY : 0;
   const netBeforeCoreElectrolysis = powerGen - powerUse - windPowerPenalty;
@@ -954,7 +975,7 @@ export function computeStats(state) {
     moduleMass,
     inventoryMass,
     structuralBuoyancy,
-    h2GasLift: h2Lift.h2GasLift,
+    h2GasLift,
     buoyancy,
     netLift,
     powerGen,
@@ -969,12 +990,12 @@ export function computeStats(state) {
     corrosion,
     isruCount,
     electrolyzerCount,
-    h2Demand: h2Lift.demand,
-    h2Effective: h2Lift.effective,
-    h2Shortfall: h2Lift.shortfall,
-    h2Utilization: h2Lift.utilization,
-    h2LeakRate: h2Lift.leakRate,
-    h2Critical: h2Lift.critical,
+    h2Demand,
+    h2Effective,
+    h2Shortfall,
+    h2Utilization,
+    h2LeakRate,
+    h2Critical,
   };
 }
 
@@ -997,8 +1018,8 @@ export function getAcidIntakePerTick(intakeUnits) {
 }
 
 /** Acid accumulation toward next 1t batch (§5.1 / §4.2). */
-export function getAcidWaitInfo(state) {
-  const stats = computeStats(state);
+export function getAcidWaitInfo(state, cachedStats = null) {
+  const stats = cachedStats ?? computeStats(state);
   const h2so4 = state.inventory.h2so4 ?? 0;
   const rate = getAcidIntakePerTick(stats.intakeUnits);
   const progress = Math.min(1, Math.max(0, h2so4));
@@ -1020,8 +1041,8 @@ export function getAcidWaitInfo(state) {
 }
 
 /** O₂ production vs CORE life-support consumption per tick (§4.2). */
-export function getO2Flow(state) {
-  const stats = computeStats(state);
+export function getO2Flow(state, cachedStats = null) {
+  const stats = cachedStats ?? computeStats(state);
   const inv = state.inventory;
   let produce = 0;
   if (stats.isruCount > 0 && stats.powerNet >= 0 && (inv.co2 ?? 0) >= 1) {
@@ -1089,12 +1110,11 @@ function getH2ExtendHint(state) {
  * Dynamic next-step hint for the build panel (§6.1 / §6.2 / §8).
  * Priority: power deficit → early coaching → post-ISRU bottlenecks → generic.
  */
-export function getBuildPanelHint(state) {
+export function getBuildPanelHint(state, cachedStats = null) {
   if (state.selectedBuild) return t('panel.buildHintActive');
 
   const inv = state.inventory;
-  const stats = computeStats(state);
-  const h2Lift = getH2LiftInfo(state);
+  const stats = cachedStats ?? computeStats(state);
   const solarCount = countModulesOfType(state.modules, 'solar');
   const isruCount = stats.isruCount;
   const electrolyzerCount = stats.electrolyzerCount ?? 0;
@@ -1103,7 +1123,7 @@ export function getBuildPanelHint(state) {
   const solarIron = solarCost?.iron ?? 0;
 
   // §7.1 — H₂ lift collapse: electrolyzer / acid chain / vent
-  if (h2Lift.critical) {
+  if (stats.h2Critical) {
     const elecCost = MODULE_TYPES.electrolyzer.cost;
     if (electrolyzerCount === 0 && canAfford(inv, elecCost)) {
       return t('panel.buildHintElectrolyzer');
@@ -1309,8 +1329,8 @@ function processIsru(inventory, isruCount, powerNet, prevWaitStatus) {
 }
 
 /** HUD label for current ISRU bottleneck. */
-export function getIsruStatusLabel(state) {
-  const stats = computeStats(state);
+export function getIsruStatusLabel(state, cachedStats = null) {
+  const stats = cachedStats ?? computeStats(state);
   if (stats.isruCount <= 0) return t('isru.status.noIsru');
   if (stats.powerNet < 0) return t('isru.status.noPower');
   const status = state.isruWaitStatus ?? analyzeIsruBottleneck(state.inventory);
@@ -1318,8 +1338,8 @@ export function getIsruStatusLabel(state) {
 }
 
 /** Secondary ISRU HUD lines (acid progress, intake hint, fallback electrolysis). */
-export function getIsruStatusDetail(state) {
-  const stats = computeStats(state);
+export function getIsruStatusDetail(state, cachedStats = null) {
+  const stats = cachedStats ?? computeStats(state);
   if (stats.isruCount <= 0) return null;
 
   // §4.2 — persistent CTA while power-negative (not only transition toast)
@@ -1330,7 +1350,7 @@ export function getIsruStatusDetail(state) {
   const h2so4 = state.inventory.h2so4 ?? 0;
   if (h2so4 >= 1) return null;
 
-  const acid = getAcidWaitInfo(state);
+  const acid = getAcidWaitInfo(state, stats);
   const lines = [];
   const pct = acid.progress < 0.01
     ? (Math.round(acid.progress * 1000) / 10)
@@ -1346,13 +1366,6 @@ export function getIsruStatusDetail(state) {
     lines.push(t('isru.fallbackElectrolysis'));
   }
   return lines.join('\n');
-}
-
-function hasCoreModule(modules) {
-  for (const mod of modules.values()) {
-    if (mod.type === 'core') return true;
-  }
-  return false;
 }
 
 /** Consume O₂ for CORE life support (§4.2 byproduct sink while crewed). */
@@ -1432,7 +1445,7 @@ export function gameTick(state) {
   }
 
   // H₂ leakage from corrosion (§7.1 / §9)
-  const h2LeakRate = computeH2LeakRate(modules);
+  const h2LeakRate = stats.h2LeakRate;
   const h2Before = inventory.h2 ?? 0;
   inventory = applyH2Leak(inventory, h2LeakRate);
   const h2Leaked = Math.min(h2Before, h2LeakRate);
@@ -1529,8 +1542,7 @@ export function gameTick(state) {
     sinkCountdown = 0;
   }
 
-  const h2Lift = getH2LiftInfo({ ...state, modules, inventory });
-  const h2LeakWarnActive = h2Lift.leakRate >= 0.05 || h2Lift.critical;
+  const h2LeakWarnActive = postStats.h2LeakRate >= 0.05 || postStats.h2Critical;
 
   return {
     ...state,

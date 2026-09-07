@@ -48,7 +48,6 @@ import {
   VENT_CARGO_BATCH,
   INVENTORY_CARGO_MASS_IDS,
   INVENTORY_VENTABLE_IDS,
-  getH2LiftInfo,
   CORROSION_WARN_THRESHOLD,
   CORE_POWER_GEN_BY_DIFFICULTY,
   CORE_ELECTROLYSIS_BY_DIFFICULTY,
@@ -228,7 +227,7 @@ function spawnParticles(q, r, color) {
   }
 }
 
-function updateSinkWarning() {
+function updateSinkWarning(stats) {
   if (!state) return;
   const cd = state.sinkCountdown ?? 0;
   if (state.gameOver || cd === 0) {
@@ -237,7 +236,7 @@ function updateSinkWarning() {
   }
   sinkWarning.hidden = false;
   const remaining = SINK_COUNTDOWN_MAX - cd;
-  const h2Critical = getH2LiftInfo(state).critical;
+  const h2Critical = stats?.h2Critical ?? false;
   if (cd >= SINK_WARNING_AT) {
     sinkWarning.textContent = h2Critical
       ? t('sink.warningH2', { remaining })
@@ -555,17 +554,17 @@ function updateUI() {
   const isruStatus = state.isruWaitStatus ?? 'noIsru';
   const waitingIsru = ['waitingAcid', 'waitingH2', 'electrolyzing', 'noPower'].includes(isruStatus);
   if (isruStatusEl) {
-    isruStatusEl.textContent = getIsruStatusLabel(state);
+    isruStatusEl.textContent = getIsruStatusLabel(state, stats);
     isruStatusEl.className = waitingIsru ? 'warning' : '';
   }
   if (isruDetailEl) {
-    const detail = getIsruStatusDetail(state);
+    const detail = getIsruStatusDetail(state, stats);
     isruDetailEl.textContent = detail ?? '';
     isruDetailEl.hidden = !detail;
     bindPowerSolarCta(isruDetailEl);
   }
   if (isruSummaryEl) {
-    const detail = getIsruStatusDetail(state);
+    const detail = getIsruStatusDetail(state, stats);
     const detailsClosed = isruDetailsEl && !isruDetailsEl.open;
     const showSummary = detailsClosed && detail
       && (waitingIsru || (stats.powerNet < 0 && stats.isruCount > 0));
@@ -580,7 +579,7 @@ function updateUI() {
     }
   }
   if (acidProgressWrap && acidProgressBar) {
-    const acid = getAcidWaitInfo(state);
+    const acid = getAcidWaitInfo(state, stats);
     const h2so4 = state.inventory.h2so4 ?? 0;
     const showAcid = stats.isruCount > 0 && stats.powerNet >= 0 && h2so4 < 1;
     acidProgressWrap.hidden = !showAcid;
@@ -640,20 +639,19 @@ function updateUI() {
   setResource('res-h2', state.inventory.h2.toFixed(1));
   const h2LiftEl = document.getElementById('res-h2-lift');
   if (h2LiftEl) {
-    const h2Lift = getH2LiftInfo(state);
     h2LiftEl.textContent = t('panel.h2LiftStatus', {
-      lift: h2Lift.h2GasLift.toFixed(1),
-      effective: h2Lift.effective.toFixed(1),
-      demand: h2Lift.demand.toFixed(1),
-      leak: h2Lift.leakRate.toFixed(3),
+      lift: stats.h2GasLift.toFixed(1),
+      effective: stats.h2Effective.toFixed(1),
+      demand: stats.h2Demand.toFixed(1),
+      leak: stats.h2LeakRate.toFixed(3),
     });
     h2LiftEl.hidden = false;
-    h2LiftEl.className = h2Lift.critical ? 'resource-flow warning' : 'resource-flow';
+    h2LiftEl.className = stats.h2Critical ? 'resource-flow warning' : 'resource-flow';
   }
   setResource('res-o2', state.inventory.o2.toFixed(1));
   const o2FlowEl = document.getElementById('res-o2-flow');
   if (o2FlowEl) {
-    const flow = getO2Flow(state);
+    const flow = getO2Flow(state, stats);
     if (flow.consume > 0) {
       o2FlowEl.textContent = t('panel.o2Flow', {
         produce: flow.produce.toFixed(1),
@@ -781,7 +779,7 @@ function updateUI() {
     if (coatingHint) coatingHint.hidden = true;
   }
 
-  updateSinkWarning();
+  updateSinkWarning(stats);
   updateGameOverOverlay();
 
   const inventoryBtn = document.getElementById('btn-inventory');
@@ -814,7 +812,7 @@ function updateUI() {
 
   const buildHintEl = document.getElementById('build-hint-line');
   if (buildHintEl) {
-    const hint = getBuildPanelHint(state);
+    const hint = getBuildPanelHint(state, stats);
     buildHintEl.textContent = hint;
     buildHintEl.hidden = !hint;
     bindPowerSolarCta(buildHintEl);
@@ -863,11 +861,12 @@ function formatBuildShortageReason(missing, preview) {
 
 function buildButtons() {
   if (!state) return;
+  const stats = computeStats(state);
   const container = document.getElementById('build-buttons');
   container.innerHTML = '';
   for (const type of ['intake', 'isru', 'solar', 'h2cell', 'electrolyzer']) {
     const def = MODULE_TYPES[type];
-    const preview = getBuildPowerPreview(state, type);
+    const preview = getBuildPowerPreview(state, type, stats);
     const affordable = canAfford(state.inventory, def.cost);
     const missing = affordable ? [] : getMissingMaterials(state.inventory, def.cost);
     const powerLine = preview ? formatBuildPowerLine(preview) : '';
