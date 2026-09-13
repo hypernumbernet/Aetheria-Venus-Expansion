@@ -1,6 +1,7 @@
 import { hexKey, getNeighbors } from './hex.js';
 import { MATERIALS, INVENTORY_IDS, getMaterialName } from './materials.js';
 import { t, costSeparator } from './i18n.js';
+import { createInitialEarthContract, tickEarthContracts } from './contracts.js';
 
 export function getModuleName(type) {
   return t(`module.${type}`);
@@ -268,6 +269,7 @@ export function createInitialState(difficulty = 'normal') {
     windShearActive: false,
     startHintShown: false,
     h2LeakWarnActive: false,
+    earthContract: createInitialEarthContract(),
   };
 }
 
@@ -857,7 +859,7 @@ export function applyH2Leak(inventory, leakRate) {
   return { ...inventory, h2: Math.max(0, h2 - leakRate) };
 }
 
-/** Post-placement power preview for build UI (§4.2 / §6.3). */
+/** Post-placement power + lift preview for build UI (§4.2 / §6.3 / §7.1). */
 export function getBuildPowerPreview(state, moduleType, cachedStats = null) {
   const def = MODULE_TYPES[moduleType];
   if (!def) return null;
@@ -878,13 +880,56 @@ export function getBuildPowerPreview(state, moduleType, cachedStats = null) {
   const currentNet = stats.powerNet;
   const projectedNet = currentNet + genDelta - useDelta - windPenaltyDelta;
 
+  const previewModules = new Map(state.modules);
+  previewModules.set('__preview__', {
+    type: moduleType,
+    h2Layers: 1,
+    corrosion: 0,
+    coatedTicks: 0,
+    carbonLighten: 0,
+  });
+  const previewInventory = def.cost && canAfford(state.inventory, def.cost)
+    ? payCost(state.inventory, def.cost)
+    : state.inventory;
+  const projectedStats = computeStats({
+    ...state,
+    modules: previewModules,
+    inventory: previewInventory,
+  });
+
   return {
     genDelta,
     useDelta,
     currentNet,
     projectedNet,
     wouldDeficit: projectedNet < 0,
+    massDelta: projectedStats.mass - stats.mass,
+    netLiftDelta: projectedStats.netLift - stats.netLift,
+    projectedNetLift: projectedStats.netLift,
   };
+}
+
+/**
+ * Estimated ticks until net lift falls below zero (HUD runway; information only).
+ * Uses inventory H₂ leak and CORE electrolysis H₂ gain; stable when lift is not draining.
+ */
+export function computeLiftRunwayTicks(state, cachedStats = null) {
+  const stats = cachedStats ?? computeStats(state);
+  if (stats.netLift < 0) return 0;
+
+  let liftDeltaPerTick = 0;
+  if (stats.coreElectrolysisActive) {
+    const cfg = getCoreElectrolysisConfig(state.difficulty);
+    liftDeltaPerTick += cfg.h2 * H2_LIFT_PER_T;
+  }
+
+  const invH2 = state.inventory.h2 ?? 0;
+  if (invH2 > 0.001 && stats.h2LeakRate > 0) {
+    liftDeltaPerTick -= stats.h2LeakRate * H2_LIFT_PER_T;
+  }
+
+  if (liftDeltaPerTick >= -1e-6) return null;
+  return Math.max(1, Math.ceil(stats.netLift / -liftDeltaPerTick));
 }
 
 export function computeStats(state) {
@@ -1274,10 +1319,10 @@ export function formatH2so4Amount(amount) {
 
 function processIsru(inventory, isruCount, powerNet, prevWaitStatus) {
   if (isruCount <= 0) {
-    return { inventory, events: [], waitStatus: 'noIsru', powerDeficit: false };
+    return { inventory, events: [], waitStatus: 'noIsru', powerDeficit: false, acidSplits: 0 };
   }
   if (powerNet < 0) {
-    return { inventory, events: [], waitStatus: 'noPower', powerDeficit: true };
+    return { inventory, events: [], waitStatus: 'noPower', powerDeficit: true, acidSplits: 0 };
   }
 
   let inv = { ...inventory };
@@ -1325,7 +1370,7 @@ function processIsru(inventory, isruCount, powerNet, prevWaitStatus) {
     events.push(t('msg.isruH2Reserve'));
   }
 
-  return { inventory: inv, events, waitStatus, powerDeficit: false };
+  return { inventory: inv, events, waitStatus, powerDeficit: false, acidSplits };
 }
 
 /** HUD label for current ISRU bottleneck. */
@@ -1544,6 +1589,14 @@ export function gameTick(state) {
 
   const h2LeakWarnActive = postStats.h2LeakRate >= 0.05 || postStats.h2Critical;
 
+  const contractTick = tickEarthContracts(
+    { ...state, inventory },
+    postStats,
+    { acidSplitsThisTick: isruResult.acidSplits ?? 0, moduleCount: modules.size },
+  );
+  inventory = contractTick.inventory;
+  events.push(...contractTick.events);
+
   return {
     ...state,
     modules,
@@ -1559,6 +1612,7 @@ export function gameTick(state) {
     windDamageActive,
     windShearActive,
     h2LeakWarnActive,
+    earthContract: contractTick.earthContract,
   };
 }
 

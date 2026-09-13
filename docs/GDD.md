@@ -313,6 +313,7 @@ CORE life support consumes **0.7 O₂/tick** while CORE exists.
 - **Net lift** = structural lift + **H₂ gas lift** − total mass. Structural lift alone cannot sustain the colony.
 - **H₂ leak** each tick from inventory: **0.005** + avg corrosion × **0.05/100** + max corrosion × **0.02/100** (coating reduces module contribution). HUD shows H₂ lift, gas stock, and leak rate.
 - If net lift **&lt; 0** for **30 consecutive ticks**, game over (sinking). Warning at tick 5 (H₂-specific copy when lift gas is the cause). Recovery resets countdown.
+- **Lift runway** (HUD): rough tick estimate until net lift hits zero from H₂ leak vs CORE electrolysis (no balance changes).
 - **Carbon lightening** on selected module: −1 C, −2 mass, +2 structural lift (max 3× per module).
 
 ### 10.5 Earth Partnership
@@ -326,6 +327,12 @@ CORE life support consumes **0.7 O₂/tick** while CORE exists.
 | Hard | 0 | 0 |
 
 **Earth market** (all difficulties): buy Fe **6₵**, H₂O **5₵**; export **2 t S → 6₵**. HUD shows aid ETA and build/market shortcuts.
+
+**Earth micro-contracts** (prototype tester1): **one active goal at a time**—e.g. hold net lift ≥ +5 for 60 ticks, complete three acid splits, or reach four connected modules. Rewards are small stock grants (H₂O, Fe, ₵); failure does not trigger sink. Rotates on completion; see **ゲームルール.md §8.4**.
+
+**Lift runway HUD**: estimated ticks until net lift goes negative from current H₂ leak vs CORE electrolysis gain (informational only).
+
+**Build preview**: selected module shows post-placement power net plus **Δ mass** and **Δ net lift**; confirming a build with projected net lift &lt; +5 shows a warning toast but still places.
 
 **Starting stock**: Easy — **40₵**, 2 H₂SO₄, 1 S, **2 Fe**, **4 H₂O**, **5 H₂**; Normal — 30₵, 2 H₂SO₄, 1 S, **1 Fe**, **2.5 H₂O**, **4 H₂**; Hard — **18₵**, 2 H₂SO₄, 2 S, 2 Fe, **2 H₂O**, **3.5 H₂**.
 

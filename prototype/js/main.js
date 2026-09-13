@@ -29,6 +29,7 @@ import {
   getAcidWaitInfo,
   getO2Flow,
   getBuildPowerPreview,
+  computeLiftRunwayTicks,
   formatH2so4Amount,
   getEarthAidEta,
   getBuildPanelHint,
@@ -54,6 +55,7 @@ import {
   SINK_COUNTDOWN_MAX,
   SINK_WARNING_AT,
 } from './game.js';
+import { getEarthContractHud, BUILD_LIFT_WARN_THRESHOLD } from './contracts.js';
 import {
   MATERIALS,
   INVENTORY_IDS,
@@ -196,6 +198,7 @@ function pickToastEvent(events) {
   const priority = (msg) => {
     if (msg.includes('沈没') || msg.includes('sank') || msg.includes('Sinking')) return 0;
     if (msg.includes('援助') || msg.includes('aid arrived') || msg.includes('periodic aid')) return 1;
+    if (msg.includes('契約') || msg.includes('contract complete')) return 1;
     if (msg.includes('腐食') || msg.includes('corrosion') || msg.includes('Corrosion')) return 2;
     if (msg.includes('硫酸') || msg.includes('acid') || msg.includes('H₂') || msg.includes('hydrogen')) return 3;
     if (msg.includes('ISRU') || msg.includes('電力不足') || msg.includes('Power deficit')) return 4;
@@ -496,6 +499,20 @@ function updateUI() {
   set('stat-mass', stats.mass.toFixed(1));
   set('stat-net', (stats.netLift >= 0 ? '+' : '') + stats.netLift.toFixed(1),
     stats.netLift >= 0 ? 'positive' : 'negative');
+  const runwayEl = document.getElementById('stat-runway');
+  if (runwayEl) {
+    const runway = computeLiftRunwayTicks(state, stats);
+    if (runway === 0) {
+      runwayEl.textContent = t('panel.liftRunwayNow');
+      runwayEl.className = 'negative';
+    } else if (runway == null) {
+      runwayEl.textContent = t('panel.liftRunwayStable');
+      runwayEl.className = stats.h2LeakRate > 0.01 ? '' : 'positive';
+    } else {
+      runwayEl.textContent = t('panel.liftRunwayTicks', { ticks: runway });
+      runwayEl.className = runway <= 30 ? 'warning' : '';
+    }
+  }
   set('stat-power', `${stats.powerGen.toFixed(0)} / ${stats.powerUse.toFixed(0)} (${stats.powerNet >= 0 ? '+' : ''}${stats.powerNet.toFixed(0)})`,
     stats.powerNet >= 0 ? 'positive' : 'negative');
   set('stat-wind', stats.windLoad.toFixed(0), stats.windLoad > 12 ? 'warning' : '');
@@ -586,6 +603,17 @@ function updateUI() {
     acidProgressWrap.setAttribute('aria-hidden', showAcid ? 'false' : 'true');
     if (showAcid) {
       acidProgressBar.style.width = `${Math.min(100, acid.progress * 100)}%`;
+    }
+  }
+
+  const earthContractEl = document.getElementById('earth-contract-hud');
+  if (earthContractEl) {
+    const contractHud = getEarthContractHud(state);
+    if (contractHud) {
+      earthContractEl.textContent = `${contractHud.title} — ${contractHud.detail} → ${contractHud.reward}`;
+      earthContractEl.hidden = false;
+    } else {
+      earthContractEl.hidden = true;
     }
   }
 
@@ -819,6 +847,11 @@ function updateUI() {
   }
 }
 
+function formatSignedDelta(value, digits = 1) {
+  const rounded = value.toFixed(digits);
+  return (value >= 0 ? '+' : '') + rounded;
+}
+
 function formatBuildPowerLine(preview) {
   if (!preview) return '';
   const parts = [];
@@ -831,6 +864,12 @@ function formatBuildPowerLine(preview) {
   const net = preview.projectedNet;
   const netLabel = (net >= 0 ? '+' : '') + net.toFixed(0);
   parts.push(t('panel.buildPowerNetAfter', { net: netLabel }));
+  if (preview.massDelta != null) {
+    parts.push(t('panel.buildMassDelta', { delta: formatSignedDelta(preview.massDelta) }));
+  }
+  if (preview.netLiftDelta != null) {
+    parts.push(t('panel.buildNetLiftDelta', { delta: formatSignedDelta(preview.netLiftDelta) }));
+  }
   return parts.join(' · ');
 }
 
@@ -1053,11 +1092,19 @@ canvas.addEventListener('click', (e) => {
   }
 
   const buildType = state.selectedBuild;
+  const preStats = computeStats(state);
+  const buildPreview = getBuildPowerPreview(state, buildType, preStats);
   const result = placeModule(state, q, r);
   if (result.ok) {
     state = result.state;
     spawnParticles(q, r, MODULE_TYPES[buildType].color);
     showToast(result.message);
+    if (buildPreview?.projectedNetLift != null
+      && buildPreview.projectedNetLift < BUILD_LIFT_WARN_THRESHOLD) {
+      showToast(t('msg.buildLiftWarn', {
+        lift: formatSignedDelta(buildPreview.projectedNetLift),
+      }));
+    }
     buildButtons();
   } else {
     showToast(result.reason);
