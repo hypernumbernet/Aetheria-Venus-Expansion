@@ -1566,7 +1566,9 @@ export function gameTick(state) {
   // Sink countdown — uses post-leak stats (§7.2)
   let sinkCountdown = state.sinkCountdown ?? 0;
   let gameOver = false;
+  let gameOverFailureSummary = state.gameOverFailureSummary ?? null;
   const postStats = computeStats({ ...state, modules, inventory });
+  const liftRunwayTicks = computeLiftRunwayTicks({ ...state, modules, inventory }, postStats);
 
   if (postStats.netLift < 0) {
     sinkCountdown += 1;
@@ -1578,6 +1580,10 @@ export function gameTick(state) {
       }
     } else if (sinkCountdown >= SINK_COUNTDOWN_MAX) {
       gameOver = true;
+      gameOverFailureSummary = classifyGameOverFailure(
+        { ...state, modules, inventory, isruWaitStatus },
+        postStats,
+      );
       events.push(t('msg.sank'));
     }
   } else {
@@ -1592,7 +1598,11 @@ export function gameTick(state) {
   const contractTick = tickEarthContracts(
     { ...state, inventory },
     postStats,
-    { acidSplitsThisTick: isruResult.acidSplits ?? 0, moduleCount: modules.size },
+    {
+      acidSplitsThisTick: isruResult.acidSplits ?? 0,
+      moduleCount: modules.size,
+      liftRunwayTicks,
+    },
   );
   inventory = contractTick.inventory;
   events.push(...contractTick.events);
@@ -1606,6 +1616,7 @@ export function gameTick(state) {
     lastStats: postStats,
     sinkCountdown,
     gameOver,
+    gameOverFailureSummary,
     isruWaitStatus,
     corrosionWarnLevel,
     sUpkeepActive,
@@ -1621,6 +1632,60 @@ export function gameTick(state) {
  */
 export function restartGame(difficulty = 'normal') {
   return createInitialState(difficulty);
+}
+
+/** @typedef {'h2Lift' | 'mass' | 'power' | 'corrosion'} FailureCauseId */
+
+const FAILURE_CAUSE_ORDER = /** @type {const} */ (['h2Lift', 'mass', 'power', 'corrosion']);
+
+/**
+ * Classify sink / game-over causes (primary + up to two secondary, info only).
+ * @param {ReturnType<typeof createInitialState>} state
+ * @param {ReturnType<typeof computeStats>} stats
+ */
+export function classifyGameOverFailure(state, stats) {
+  const weights = {
+    h2Lift: 0,
+    mass: 0,
+    power: 0,
+    corrosion: 0,
+  };
+
+  if (stats.h2Critical) weights.h2Lift += 5;
+  if (stats.h2Shortfall > 0.5) weights.h2Lift += 3;
+  else if (stats.h2Shortfall > 0.1) weights.h2Lift += 1;
+  if (stats.h2Utilization < 0.85) weights.h2Lift += 2;
+  if (stats.h2Demand > 0 && stats.h2Effective < stats.h2Demand * 0.9) weights.h2Lift += 1;
+
+  const totalMass = stats.mass || 1;
+  const invMass = stats.inventoryMass ?? 0;
+  if (invMass > 2) weights.mass += 2;
+  if (invMass / totalMass > 0.22) weights.mass += 2;
+  if (!stats.h2Critical && stats.netLift < 0) weights.mass += 3;
+  if ((stats.moduleMass ?? 0) > 18 && stats.netLift < 0) weights.mass += 1;
+
+  if (stats.isruCount > 0 && stats.powerNet < 0) weights.power += 4;
+  if (state.isruWaitStatus === 'noPower') weights.power += 3;
+  if (stats.powerNet < -2) weights.power += 1;
+
+  const corrSummary = getCorrosionSummary(state.modules);
+  if (corrSummary.avg >= CORROSION_SEVERE_THRESHOLD) weights.corrosion += 3;
+  else if (corrSummary.avg >= CORROSION_WARN_THRESHOLD) weights.corrosion += 2;
+  if (stats.h2LeakRate >= H2_LEAK_BASE * 1.6) weights.corrosion += 2;
+  if (corrSummary.penaltyCount >= 2) weights.corrosion += 1;
+  if (corrSummary.max >= 75 && stats.h2LeakRate > H2_LEAK_BASE * 2) weights.corrosion += 2;
+
+  const ranked = FAILURE_CAUSE_ORDER
+    .map((id) => ({ id, score: weights[id] }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  /** @type {FailureCauseId} */
+  const primary = ranked[0]?.id ?? 'h2Lift';
+  /** @type {FailureCauseId[]} */
+  const secondary = ranked.slice(1, 3).map((entry) => entry.id);
+
+  return { primary, secondary };
 }
 
 export { H2_EXTEND_COST, TRADE_SULFUR_COST, COATING_S_COST };

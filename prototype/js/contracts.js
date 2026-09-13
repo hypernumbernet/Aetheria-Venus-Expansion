@@ -6,13 +6,14 @@ export const EARTH_CONTRACT_ORDER = ['fourModules', 'holdLift', 'acidSplits'];
 export const EARTH_CONTRACTS = {
   fourModules: {
     id: 'fourModules',
-    target: 4,
+    /** Net modules added since this contract became active (CORE start = 1 → +3 reaches 4 total). */
+    target: 3,
     reward: { iron: 1 },
   },
   holdLift: {
     id: 'holdLift',
     target: 60,
-    minNetLift: 5,
+    minNetLift: 8,
     reward: { h2o: 2, iron: 1 },
   },
   acidSplits: {
@@ -31,13 +32,25 @@ function contractIndex(id) {
 
 export function createInitialEarthContract() {
   const id = EARTH_CONTRACT_ORDER[0];
-  return { id, progress: 0, index: 0 };
+  return {
+    id,
+    progress: 0,
+    index: 0,
+    baselineModules: 1,
+    graceTicks: 0,
+  };
 }
 
-function nextContractState(completedIndex) {
+function nextContractState(completedIndex, moduleCount) {
   const nextIndex = (completedIndex + 1) % EARTH_CONTRACT_ORDER.length;
   const id = EARTH_CONTRACT_ORDER[nextIndex];
-  return { id, progress: 0, index: nextIndex };
+  return {
+    id,
+    progress: 0,
+    index: nextIndex,
+    baselineModules: id === 'fourModules' ? moduleCount : undefined,
+    graceTicks: 1,
+  };
 }
 
 function applyContractReward(inventory, reward) {
@@ -58,44 +71,61 @@ function formatReward(reward) {
 
 /**
  * Advance micro-contract progress after a tick (post-leak stats).
- * @param {{ id: string, progress: number, index: number }} earthContract
- * @returns {{ earthContract, inventory, events: string[], completed: boolean }}
+ * @param {{ id: string, progress: number, index: number, baselineModules?: number, graceTicks?: number }} earthContract
+ * @returns {{ earthContract, inventory, events: string[] }}
  */
-export function tickEarthContracts(state, stats, { acidSplitsThisTick = 0, moduleCount = 0 }) {
-  const earthContract = state.earthContract ?? createInitialEarthContract();
+export function tickEarthContracts(state, stats, {
+  acidSplitsThisTick = 0,
+  moduleCount = 0,
+  liftRunwayTicks = null,
+} = {}) {
+  let earthContract = { ...(state.earthContract ?? createInitialEarthContract()) };
   const def = EARTH_CONTRACTS[earthContract.id];
   if (!def) {
     return { earthContract: createInitialEarthContract(), inventory: state.inventory, events: [] };
   }
+
+  if (earthContract.id === 'fourModules' && earthContract.baselineModules == null) {
+    earthContract.baselineModules = moduleCount;
+  }
+
+  let graceTicks = earthContract.graceTicks ?? 0;
+  const blockCompletion = graceTicks > 0;
+  if (blockCompletion) graceTicks -= 1;
 
   let progress = earthContract.progress ?? 0;
   let inventory = state.inventory;
   const events = [];
 
   if (earthContract.id === 'holdLift') {
-    if (stats.netLift >= def.minNetLift) {
+    const runwayPause = liftRunwayTicks != null && liftRunwayTicks <= 30;
+    if (!runwayPause && stats.netLift >= def.minNetLift) {
       progress += 1;
-    } else {
+    } else if (!runwayPause) {
       progress = 0;
     }
   } else if (earthContract.id === 'acidSplits') {
     progress += acidSplitsThisTick;
   } else if (earthContract.id === 'fourModules') {
-    progress = Math.max(progress, moduleCount);
+    const baseline = earthContract.baselineModules ?? 1;
+    progress = Math.max(progress, moduleCount - baseline);
   }
 
-  if (progress >= def.target) {
+  if (!blockCompletion && progress >= def.target) {
     inventory = applyContractReward(inventory, def.reward);
     events.push(t('msg.contractComplete', {
       title: t(`contract.${earthContract.id}.title`),
       reward: formatReward(def.reward),
     }));
-    const next = nextContractState(earthContract.index ?? contractIndex(earthContract.id));
+    const next = nextContractState(
+      earthContract.index ?? contractIndex(earthContract.id),
+      moduleCount,
+    );
     return { earthContract: next, inventory, events };
   }
 
   return {
-    earthContract: { ...earthContract, progress },
+    earthContract: { ...earthContract, progress, graceTicks },
     inventory,
     events,
   };
@@ -109,10 +139,26 @@ export function getEarthContractHud(state) {
 
   const progress = earthContract.progress ?? 0;
   const title = t(`contract.${earthContract.id}.title`);
-  const detail = t(`contract.${earthContract.id}.progress`, {
-    current: Math.min(progress, def.target),
-    target: def.target,
-  });
+  let detail;
+  if (earthContract.id === 'holdLift') {
+    detail = t('contract.holdLift.progress', {
+      current: Math.min(progress, def.target),
+      target: def.target,
+      minLift: def.minNetLift,
+      remaining: Math.max(0, def.target - progress),
+    });
+  } else if (earthContract.id === 'fourModules') {
+    detail = t('contract.fourModules.progress', {
+      current: Math.min(progress, def.target),
+      target: def.target,
+      total: (earthContract.baselineModules ?? 1) + def.target,
+    });
+  } else {
+    detail = t(`contract.${earthContract.id}.progress`, {
+      current: Math.min(progress, def.target),
+      target: def.target,
+    });
+  }
   const reward = formatReward(def.reward);
   return { title, detail, reward };
 }
