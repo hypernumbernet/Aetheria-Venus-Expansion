@@ -23,6 +23,22 @@ export const EARTH_CONTRACTS = {
   },
 };
 
+/** Contract payout by difficulty (reward tables only — §8.4 / Hard supply coaching). */
+const HARD_CONTRACT_REWARD_OVERRIDE = {
+  fourModules: { credits: 6 },
+  holdLift: { h2o: 3 },
+};
+
+export function getEarthContractReward(contractId, difficulty = 'normal') {
+  const def = EARTH_CONTRACTS[contractId];
+  if (!def) return {};
+  if (difficulty === 'hard') {
+    const override = HARD_CONTRACT_REWARD_OVERRIDE[contractId];
+    if (override) return { ...override };
+  }
+  return { ...def.reward };
+}
+
 /** Net lift below this after placement triggers a build warning toast (still allows build). */
 export const BUILD_LIFT_WARN_THRESHOLD = 5;
 
@@ -112,10 +128,11 @@ export function tickEarthContracts(state, stats, {
   }
 
   if (!blockCompletion && progress >= def.target) {
-    inventory = applyContractReward(inventory, def.reward);
+    const reward = getEarthContractReward(earthContract.id, state.difficulty);
+    inventory = applyContractReward(inventory, reward);
     events.push(t('msg.contractComplete', {
       title: t(`contract.${earthContract.id}.title`),
-      reward: formatReward(def.reward),
+      reward: formatReward(reward),
     }));
     const next = nextContractState(
       earthContract.index ?? contractIndex(earthContract.id),
@@ -159,6 +176,6 @@ export function getEarthContractHud(state) {
       target: def.target,
     });
   }
-  const reward = formatReward(def.reward);
+  const reward = formatReward(getEarthContractReward(earthContract.id, state.difficulty));
   return { title, detail, reward };
 }

@@ -328,13 +328,15 @@ CORE life support consumes **0.7 O₂/tick** while CORE exists.
 
 **Earth market** (all difficulties): buy Fe **6₵**, H₂O **5₵**; export **2 t S → 6₵**. HUD shows aid ETA and build/market shortcuts.
 
-**Earth micro-contracts** (prototype tester1): **one active goal at a time**—e.g. hold net lift **≥ +8** for 60 ticks, complete three acid splits while active, or add **+3 modules** since the contract’s baseline (no instant completion on rotate; one-tick grace after switch). **holdLift** pauses while lift runway HUD ≤ 30 ticks. Rewards are small stock grants (H₂O, Fe, ₵); failure does not trigger sink. Rotates on completion; see **ゲームルール.md §8.4**.
+**Earth micro-contracts** (prototype tester1): **one active goal at a time**—e.g. hold net lift **≥ +8** for 60 ticks, complete three acid splits while active, or add **+3 modules** since the contract’s baseline (no instant completion on rotate; one-tick grace after switch). **holdLift** pauses while lift runway HUD ≤ 30 ticks. Rewards are small stock grants (H₂O, Fe, ₵); **Hard** skews payouts toward **market supply** (+6₵ on fourModules, +3 H₂O on holdLift). Failure does not trigger sink. Rotates on completion; see **ゲームルール.md §8.4**.
+
+**Acid wait ETA** (HUD): while **H₂SO₄ &lt; 1 t**, resources panel shows ticks until the next **1 t** batch and active intake units (`getAcidWaitInfo`). **Intake** build preview adds projected acid ETA and ticks saved vs current wait.
 
 **Game-over failure summary**: sink warning and game-over UI show a primary cause plus up to two secondary hints (H₂ shortfall, excess mass, power stall, corrosion/leak)—informational only.
 
 **Lift runway HUD**: estimated ticks until net lift goes negative from current H₂ leak vs CORE electrolysis gain (informational only).
 
-**Build preview**: selected module shows post-placement power net plus **Δ mass** and **Δ net lift**; confirming a build with projected net lift &lt; +5 shows a warning toast but still places.
+**Build preview**: selected module shows post-placement power net plus **Δ mass** and **Δ net lift**; **Atmospheric Intake** also shows **projected H₂SO₄ ETA** and **Δ wait ticks**. Confirming a build with projected net lift &lt; +5 shows a warning toast but still places.
 
 **Starting stock**: Easy — **40₵**, 2 H₂SO₄, 1 S, **2 Fe**, **4 H₂O**, **5 H₂**; Normal — 30₵, 2 H₂SO₄, 1 S, **1 Fe**, **2.5 H₂O**, **4 H₂**; Hard — **18₵**, 2 H₂SO₄, 2 S, 2 Fe, **2 H₂O**, **3.5 H₂**.
 
