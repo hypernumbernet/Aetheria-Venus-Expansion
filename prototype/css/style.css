@@ -521,7 +521,8 @@ body {
   box-shadow: 0 0 6px rgba(210, 153, 34, 0.4);
 }
 
-.resource-o2 dd {
+.resource-o2 dd,
+.resource-h2so4 dd {
   display: flex;
   flex-direction: column;
   align-items: flex-end;

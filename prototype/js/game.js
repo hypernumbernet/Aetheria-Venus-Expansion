@@ -897,7 +897,7 @@ export function getBuildPowerPreview(state, moduleType, cachedStats = null) {
     inventory: previewInventory,
   });
 
-  return {
+  const preview = {
     genDelta,
     useDelta,
     currentNet,
@@ -906,7 +906,24 @@ export function getBuildPowerPreview(state, moduleType, cachedStats = null) {
     massDelta: projectedStats.mass - stats.mass,
     netLiftDelta: projectedStats.netLift - stats.netLift,
     projectedNetLift: projectedStats.netLift,
+    projectedAcidEta: null,
+    acidEtaDelta: null,
   };
+
+  if (moduleType === 'intake') {
+    const h2so4 = state.inventory.h2so4 ?? 0;
+    const progress = Math.min(1, Math.max(0, h2so4));
+    const currentAcid = getAcidWaitInfo(state, stats);
+    const projectedRate = getAcidIntakePerTick(projectedStats.intakeUnits);
+    preview.projectedAcidEta = projectedRate > 0
+      ? Math.ceil((1 - progress) / projectedRate)
+      : null;
+    if (currentAcid.etaTicks != null && preview.projectedAcidEta != null) {
+      preview.acidEtaDelta = currentAcid.etaTicks - preview.projectedAcidEta;
+    }
+  }
+
+  return preview;
 }
 
 /**

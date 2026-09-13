@@ -137,6 +137,9 @@ function startGame(difficulty = 'normal') {
     const cfg = CORE_ELECTROLYSIS_BY_DIFFICULTY[difficulty] ?? CORE_ELECTROLYSIS_BY_DIFFICULTY.normal;
     const power = CORE_POWER_GEN_BY_DIFFICULTY[difficulty] ?? CORE_POWER_GEN_BY_DIFFICULTY.normal;
     showToast(t('panel.coreBootstrap', { power, h2: cfg.h2.toFixed(2) }));
+    if (difficulty === 'hard') {
+      showToast(t('newGame.hardMarketHint'));
+    }
   }
   if (!tickInterval) {
     tickInterval = setInterval(runTick, 1000);
@@ -695,6 +698,25 @@ function updateUI() {
   setResource('res-carbon', state.inventory.carbon.toFixed(1));
   setResource('res-n2', state.inventory.n2.toFixed(1));
   setResource('res-h2so4', formatH2so4Amount(state.inventory.h2so4));
+  const acidEtaHudEl = document.getElementById('acid-eta-hud');
+  if (acidEtaHudEl) {
+    const h2so4Amt = state.inventory.h2so4 ?? 0;
+    if (h2so4Amt < 1) {
+      const acidHud = getAcidWaitInfo(state, stats);
+      if (acidHud.etaTicks != null) {
+        acidEtaHudEl.textContent = t('panel.acidEtaHud', {
+          eta: acidHud.etaTicks,
+          units: acidHud.intakeUnits,
+        });
+        acidEtaHudEl.hidden = false;
+        acidEtaHudEl.className = 'resource-flow';
+      } else {
+        acidEtaHudEl.hidden = true;
+      }
+    } else {
+      acidEtaHudEl.hidden = true;
+    }
+  }
   setResource('res-h2', state.inventory.h2.toFixed(1));
   const h2LiftEl = document.getElementById('res-h2-lift');
   if (h2LiftEl) {
@@ -900,6 +922,12 @@ function formatBuildPowerLine(preview) {
   }
   if (preview.netLiftDelta != null) {
     parts.push(t('panel.buildNetLiftDelta', { delta: formatSignedDelta(preview.netLiftDelta) }));
+  }
+  if (preview.projectedAcidEta != null) {
+    parts.push(t('panel.buildAcidEtaAfter', { eta: preview.projectedAcidEta }));
+  }
+  if (preview.acidEtaDelta != null && preview.acidEtaDelta > 0) {
+    parts.push(t('panel.buildAcidEtaSaved', { delta: preview.acidEtaDelta }));
   }
   return parts.join(' · ');
 }
