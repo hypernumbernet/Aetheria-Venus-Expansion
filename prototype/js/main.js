@@ -54,6 +54,7 @@ import {
   CORE_ELECTROLYSIS_BY_DIFFICULTY,
   SINK_COUNTDOWN_MAX,
   SINK_WARNING_AT,
+  classifyGameOverFailure,
 } from './game.js';
 import { getEarthContractHud, BUILD_LIFT_WARN_THRESHOLD } from './contracts.js';
 import {
@@ -230,6 +231,16 @@ function spawnParticles(q, r, color) {
   }
 }
 
+function formatFailureCauseLines(summary, { includeSecondary = true } = {}) {
+  const lines = [t(`gameover.cause.${summary.primary}`)];
+  if (includeSecondary && summary.secondary?.length) {
+    for (const id of summary.secondary) {
+      lines.push(t(`gameover.causeSecondary.${id}`));
+    }
+  }
+  return lines;
+}
+
 function updateSinkWarning(stats) {
   if (!state) return;
   const cd = state.sinkCountdown ?? 0;
@@ -240,17 +251,21 @@ function updateSinkWarning(stats) {
   sinkWarning.hidden = false;
   const remaining = SINK_COUNTDOWN_MAX - cd;
   const h2Critical = stats?.h2Critical ?? false;
+  let base;
   if (cd >= SINK_WARNING_AT) {
-    sinkWarning.textContent = h2Critical
+    base = h2Critical
       ? t('sink.warningH2', { remaining })
       : t('sink.warning', { remaining });
     sinkWarning.className = 'sink-warning danger';
   } else {
-    sinkWarning.textContent = h2Critical
+    base = h2Critical
       ? t('sink.cautionH2', { remaining })
       : t('sink.caution', { remaining });
     sinkWarning.className = 'sink-warning';
   }
+  const summary = classifyGameOverFailure(state, stats ?? computeStats(state));
+  const causeLines = formatFailureCauseLines(summary);
+  sinkWarning.innerHTML = `${base}<br><span class="sink-failure-summary">${causeLines.join('<br>')}</span>`;
 }
 
 function updateGameOverOverlay() {
@@ -258,6 +273,22 @@ function updateGameOverOverlay() {
   if (state.gameOver) {
     gameoverOverlay.hidden = false;
     document.getElementById('gameover-tick').textContent = state.tick;
+    const summary = state.gameOverFailureSummary
+      ?? classifyGameOverFailure(state, state.lastStats ?? computeStats(state));
+    const primaryEl = document.getElementById('gameover-failure-primary');
+    const secondaryEl = document.getElementById('gameover-failure-secondary');
+    if (primaryEl) {
+      primaryEl.textContent = t(`gameover.cause.${summary.primary}`);
+    }
+    if (secondaryEl) {
+      secondaryEl.replaceChildren();
+      for (const id of summary.secondary ?? []) {
+        const li = document.createElement('li');
+        li.textContent = t(`gameover.causeSecondary.${id}`);
+        secondaryEl.appendChild(li);
+      }
+      secondaryEl.hidden = !(summary.secondary?.length);
+    }
   } else {
     gameoverOverlay.hidden = true;
   }

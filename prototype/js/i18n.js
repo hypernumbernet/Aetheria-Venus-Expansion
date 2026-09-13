@@ -209,6 +209,18 @@ const STRINGS = {
       hope: 'This is not the end — revise your design and try again.',
       survivalTicks: 'Survival ticks:',
       restart: 'Restart',
+      cause: {
+        h2Lift: 'Primary cause: effective H₂ gas fell far below lift demand.',
+        mass: 'Primary cause: total mass was too high — net lift collapsed.',
+        power: 'Primary cause: power shortage kept ISRU and electrolysis idle.',
+        corrosion: 'Primary cause: heavy corrosion drove H₂ leak faster than you could recover.',
+      },
+      causeSecondary: {
+        h2Lift: 'H₂ lift gas was also short of demand.',
+        mass: 'Carried and structural mass weighed the continent down.',
+        power: 'Negative power net stalled ISRU processing.',
+        corrosion: 'Corrosion and leak made H₂ upkeep harder.',
+      },
     },
     sink: {
       warning: '⚠ Low buoyancy — sinking in {remaining} ticks',
@@ -323,11 +335,11 @@ const STRINGS = {
       rewardCredits: '+{amount}₵',
       fourModules: {
         title: 'Expand the continent',
-        progress: '{current}/{target} connected modules',
+        progress: '+{current}/{target} modules since contract ({total} total goal)',
       },
       holdLift: {
         title: 'Hold steady lift',
-        progress: '{current}/{target} ticks at net lift ≥ +5',
+        progress: '{current}/{target} ticks at net lift ≥ +{minLift} ({remaining} left)',
       },
       acidSplits: {
         title: 'Acid split runs',
@@ -484,6 +496,18 @@ const STRINGS = {
       hope: 'まだ終わりではありません — 設計を見直して、もう一度挑戦しましょう。',
       survivalTicks: '生存ティック:',
       restart: '再起動',
+      cause: {
+        h2Lift: '主因: 有効 H₂ ガスが昇力需要を大きく下回った。',
+        mass: '主因: 総質量が高く、正味浮力が大きく落ちた。',
+        power: '主因: 電力不足で ISRU・電解が止まり続けた。',
+        corrosion: '主因: 腐食と H₂ 漏れが回復を上回った。',
+      },
+      causeSecondary: {
+        h2Lift: 'H₂ 昇力ガスも需要に対して不足していた。',
+        mass: '搭載・構造質量が大陸を押し下げていた。',
+        power: '電力ネットがマイナスで ISRU が停止していた。',
+        corrosion: '腐食と漏れで H₂ 維持が難しかった。',
+      },
     },
     sink: {
       warning: '⚠ 浮力不足 — 沈没まで {remaining} ティック',
@@ -598,11 +622,11 @@ const STRINGS = {
       rewardCredits: '₵ +{amount}',
       fourModules: {
         title: '大陸を広げる',
-        progress: '接続モジュール {current}/{target}',
+        progress: '契約開始から +{current}/{target} 基（合計 {total} 基目標）',
       },
       holdLift: {
         title: '正味浮力を維持',
-        progress: '正味浮力 ≥ +5 を {current}/{target} ティック',
+        progress: '正味浮力 ≥ +{minLift} を {current}/{target} ティック（残り {remaining}）',
       },
       acidSplits: {
         title: '硫酸分解を重ねる',

@@ -328,7 +328,9 @@ CORE life support consumes **0.7 O₂/tick** while CORE exists.
 
 **Earth market** (all difficulties): buy Fe **6₵**, H₂O **5₵**; export **2 t S → 6₵**. HUD shows aid ETA and build/market shortcuts.
 
-**Earth micro-contracts** (prototype tester1): **one active goal at a time**—e.g. hold net lift ≥ +5 for 60 ticks, complete three acid splits, or reach four connected modules. Rewards are small stock grants (H₂O, Fe, ₵); failure does not trigger sink. Rotates on completion; see **ゲームルール.md §8.4**.
+**Earth micro-contracts** (prototype tester1): **one active goal at a time**—e.g. hold net lift **≥ +8** for 60 ticks, complete three acid splits while active, or add **+3 modules** since the contract’s baseline (no instant completion on rotate; one-tick grace after switch). **holdLift** pauses while lift runway HUD ≤ 30 ticks. Rewards are small stock grants (H₂O, Fe, ₵); failure does not trigger sink. Rotates on completion; see **ゲームルール.md §8.4**.
+
+**Game-over failure summary**: sink warning and game-over UI show a primary cause plus up to two secondary hints (H₂ shortfall, excess mass, power stall, corrosion/leak)—informational only.
 
 **Lift runway HUD**: estimated ticks until net lift goes negative from current H₂ leak vs CORE electrolysis gain (informational only).
 

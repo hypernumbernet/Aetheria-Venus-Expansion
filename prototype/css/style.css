@@ -1524,6 +1524,31 @@ body {
   font-weight: 500;
 }
 
+.gameover-failure-primary {
+  margin: 0.75rem 0 0.35rem;
+  font-weight: 600;
+  color: #f0883e;
+}
+
+.gameover-failure-secondary {
+  margin: 0 0 0.75rem 1.1rem;
+  padding: 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.gameover-failure-secondary[hidden] {
+  display: none;
+}
+
+.sink-failure-summary {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  opacity: 0.92;
+}
+
 .gameover-stats {
   color: var(--text-muted);
   font-size: 0.8rem;
