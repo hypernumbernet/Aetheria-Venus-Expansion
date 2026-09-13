@@ -153,6 +153,13 @@ const STRINGS = {
       buildPowerGen: '+{gen} power',
       buildPowerUse: '−{use} power',
       buildPowerNetAfter: 'net after {net}',
+      buildMassDelta: 'Δmass {delta}t',
+      buildNetLiftDelta: 'Δlift {delta}t',
+      liftRunway: 'Lift runway',
+      liftRunwayTicks: '~{ticks} ticks',
+      liftRunwayNow: 'negative now',
+      liftRunwayStable: 'stable',
+      earthContract: 'Earth micro-contract',
       buildMaterialShort: 'Need: {detail}',
       sulfurUpkeep: 'S upkeep −{amount}/tick (corrosion control)',
       corrosionWorst: 'worst {max}% · {count} penalized',
@@ -307,6 +314,25 @@ const STRINGS = {
       sUpkeepActive: 'Sulfur upkeep active — {amount}/tick spent slowing corrosion on {count} modules.',
       h2LeakWarn: 'Hydrogen leaking — {rate}t/tick (corrosion-driven; coating slows leak)',
       electrolyzerRun: 'Electrolyzer: water split ×{amount} — H₂ produced',
+      contractComplete: 'Earth contract complete — {title}: {reward}',
+      buildLiftWarn: 'Warning: net lift after build would be {lift}t — still placing',
+    },
+    contract: {
+      rewardH2o: '+{amount} H₂O',
+      rewardFe: '+{amount} Fe',
+      rewardCredits: '+{amount}₵',
+      fourModules: {
+        title: 'Expand the continent',
+        progress: '{current}/{target} connected modules',
+      },
+      holdLift: {
+        title: 'Hold steady lift',
+        progress: '{current}/{target} ticks at net lift ≥ +5',
+      },
+      acidSplits: {
+        title: 'Acid split runs',
+        progress: '{current}/{target} sulfuric acid splits',
+      },
     },
     isru: {
       status: {
@@ -402,6 +428,13 @@ const STRINGS = {
       buildPowerGen: '+{gen} 電力',
       buildPowerUse: '−{use} 電力',
       buildPowerNetAfter: '配置後 {net}',
+      buildMassDelta: 'Δ質量 {delta}t',
+      buildNetLiftDelta: 'Δ正味浮力 {delta}t',
+      liftRunway: '浮力余裕',
+      liftRunwayTicks: '約 {ticks} ティック',
+      liftRunwayNow: 'すでにマイナス',
+      liftRunwayStable: '安定',
+      earthContract: '地球ミニ契約',
       buildMaterialShort: '不足: {detail}',
       sulfurUpkeep: 'S維持 −{amount}/tick（腐食抑制）',
       corrosionWorst: '最大 {max}%・ペナルティ {count} 基',
@@ -556,6 +589,25 @@ const STRINGS = {
       sUpkeepActive: '硫黄維持中 — {amount}/tick を {count} 基の腐食抑制に消費。',
       h2LeakWarn: '水素漏れ — {rate}t/tick（腐食連動・コーティングで漏れ抑制）',
       electrolyzerRun: '水電解: H₂O分解 ×{amount} — H₂ 生成',
+      contractComplete: '地球ミニ契約達成 — {title}：{reward}',
+      buildLiftWarn: '注意: 配置後の正味浮力は {lift}t です — 建設は続行します',
+    },
+    contract: {
+      rewardH2o: 'H₂O +{amount}',
+      rewardFe: 'Fe +{amount}',
+      rewardCredits: '₵ +{amount}',
+      fourModules: {
+        title: '大陸を広げる',
+        progress: '接続モジュール {current}/{target}',
+      },
+      holdLift: {
+        title: '正味浮力を維持',
+        progress: '正味浮力 ≥ +5 を {current}/{target} ティック',
+      },
+      acidSplits: {
+        title: '硫酸分解を重ねる',
+        progress: '硫酸分解 {current}/{target} 回',
+      },
     },
     isru: {
       status: {
